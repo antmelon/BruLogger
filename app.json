@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "coffee-app",
-    "slug": "coffee-app",
+    "name": "BruLogger",
+    "slug": "BruLogger",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,7 +24,13 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "scheme": "BruLogger",
+    "plugins": [
+      "expo-router",
+      "expo-web-browser"
+    ]
   }
 }
