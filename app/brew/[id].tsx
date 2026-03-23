@@ -32,7 +32,7 @@ export default function BrewDetailScreen() {
     if (Platform.OS === 'web') {
       if (!window.confirm('Are you sure you want to delete this brew log?')) return;
       await deleteBrew(id);
-      router.back();
+      router.replace('/(tabs)');
     } else {
       Alert.alert('Delete Brew', 'Are you sure you want to delete this brew log?', [
         { text: 'Cancel', style: 'cancel' },
@@ -40,7 +40,7 @@ export default function BrewDetailScreen() {
           text: 'Delete', style: 'destructive',
           onPress: async () => {
             await deleteBrew(id);
-            router.back();
+            router.replace('/(tabs)');
           },
         },
       ]);
