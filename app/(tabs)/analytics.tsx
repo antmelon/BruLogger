@@ -202,7 +202,7 @@ export default function AnalyticsScreen() {
           <Text style={styles.tileLabel}>Avg Rating</Text>
         </View>
         <View style={styles.tile}>
-          <Text style={styles.tileValue} numberOfLines={1}>{methodCounts[0]?.label.split(' ')[0] ?? '—'}</Text>
+          <Text style={styles.tileValueSmall} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{methodCounts[0]?.label ?? '—'}</Text>
           <Text style={styles.tileLabel}>Fav Method</Text>
         </View>
       </View>
@@ -274,6 +274,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tileValue: { fontSize: 22, fontWeight: '800', color: '#4A3728', marginBottom: 4 },
+  tileValueSmall: { fontSize: 16, fontWeight: '800', color: '#4A3728', marginBottom: 4, textAlign: 'center' },
   tileLabel: { fontSize: 11, color: '#8C7B6E', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center' },
 
   section: {
