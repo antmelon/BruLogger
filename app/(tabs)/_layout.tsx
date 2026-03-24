@@ -15,7 +15,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'My Brews',
+          title: 'Dev Test',
           tabBarIcon: ({ color }) => <CoffeeIcon size={22} color={color} />,
         }}
       />
@@ -30,9 +30,6 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <UserIcon size={22} color={color} />,
-        }}
-      />
-    </Tabs>
+          tabBarIcon: ({ color }) =></Tabs>
   );
 }
