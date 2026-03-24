@@ -44,6 +44,7 @@ export default function LoginScreen() {
         <View style={styles.iconWrapper}>
           <CoffeeIcon size={48} color="#9E8E7E" strokeWidth={1.5} />
         </View>
+        <Text style={styles.title}>BruLogger</Text>
         <Text style={styles.title}>Coffee Journal</Text>
         <Text style={styles.subtitle}>Track, rate, and remember every brew.</Text>
 

@@ -15,7 +15,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Test Dev',
+          title: 'My Brews',
           tabBarIcon: ({ color }) => <CoffeeIcon size={22} color={color} />,
         }}
       />
