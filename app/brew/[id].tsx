@@ -159,7 +159,7 @@ export default function BrewDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5EFE6' },
   content: { paddingBottom: 48 },
-  heroPhotoContainer: { width: '100%', maxWidth: 560, alignSelf: 'center' },
+  heroPhotoContainer: { marginHorizontal: 20, marginTop: 20, borderRadius: 16, overflow: 'hidden' },
   heroPhoto: { width: '100%', backgroundColor: '#F5EFE6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
   error: { color: '#8C7B6E', fontSize: 16 },
