@@ -78,11 +78,13 @@ export default function BrewDetailScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Photo */}
       {brew.photo_url && photoAspectRatio !== null ? (
-        <Image
-          source={{ uri: brew.photo_url }}
-          style={[styles.heroPhoto, { aspectRatio: photoAspectRatio }]}
-          resizeMode="cover"
-        />
+        <View style={styles.heroPhotoContainer}>
+          <Image
+            source={{ uri: brew.photo_url }}
+            style={[styles.heroPhoto, { aspectRatio: photoAspectRatio }]}
+            resizeMode="cover"
+          />
+        </View>
       ) : null}
 
       {/* Header */}
@@ -157,7 +159,8 @@ export default function BrewDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5EFE6' },
   content: { paddingBottom: 48 },
-  heroPhoto: { alignSelf: 'center', width: '100%', maxWidth: 560, backgroundColor: '#F5EFE6' },
+  heroPhotoContainer: { width: '100%', maxWidth: 560, alignSelf: 'center' },
+  heroPhoto: { width: '100%', backgroundColor: '#F5EFE6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
   error: { color: '#8C7B6E', fontSize: 16 },
 
