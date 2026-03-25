@@ -251,7 +251,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
             <Image
               source={{ uri: photoUri ?? photoUrl! }}
               style={styles.photoPreview}
-              resizeMode="cover"
+              resizeMode="contain"
             />
             <View style={styles.photoActions}>
               <TouchableOpacity onPress={pickImage} style={styles.photoActionBtn} activeOpacity={0.7}>
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDFAF6',
   },
   photoPlaceholderText: { fontSize: 14, color: '#B0A090' },
-  photoPreview: { width: '100%', height: 200, borderRadius: 12 },
+  photoPreview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: '#F5EFE6' },
   photoActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
   photoActionBtn: {
     flex: 1,

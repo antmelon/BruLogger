@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Alert, Platform, Image,
+  TouchableOpacity, Alert, Platform, Image, Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Brew } from '../../types';
@@ -23,10 +23,27 @@ export default function BrewDetailScreen() {
   const router = useRouter();
   const [brew, setBrew] = useState<Brew | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     getBrew(id).then(setBrew).finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (brew?.photo_url) {
+      const maxWidth = Math.min(Dimensions.get('window').width - 40, 560);
+      const maxHeight = 320;
+      Image.getSize(brew.photo_url, (w, h) => {
+        const aspectRatio = w / h;
+        const naturalHeight = maxWidth / aspectRatio;
+        if (naturalHeight > maxHeight) {
+          setPhotoSize({ width: maxHeight * aspectRatio, height: maxHeight });
+        } else {
+          setPhotoSize({ width: maxWidth, height: naturalHeight });
+        }
+      });
+    }
+  }, [brew?.photo_url]);
 
   async function confirmDelete() {
     if (Platform.OS === 'web') {
@@ -70,8 +87,10 @@ export default function BrewDetailScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Photo */}
-      {brew.photo_url ? (
-        <Image source={{ uri: brew.photo_url }} style={styles.heroPhoto} resizeMode="cover" />
+      {brew.photo_url && photoSize !== null ? (
+        <View style={styles.heroPhotoContainer}>
+          <Image source={{ uri: brew.photo_url }} style={[styles.heroPhoto, photoSize]} resizeMode="cover" />
+        </View>
       ) : null}
 
       {/* Header */}
@@ -146,7 +165,8 @@ export default function BrewDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5EFE6' },
   content: { paddingBottom: 48 },
-  heroPhoto: { width: '100%', height: 220 },
+  heroPhotoContainer: { marginTop: 20, alignItems: 'center' },
+  heroPhoto: { borderRadius: 16, backgroundColor: '#F5EFE6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
   error: { color: '#8C7B6E', fontSize: 16 },
 
