@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import Svg, { Polygon, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { FlavorProfile } from '../types';
 
@@ -132,6 +132,7 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
               textAnchor={textAnchor}
               fontSize={11}
               fontWeight="600"
+              fontFamily={Platform.select({ web: 'system-ui, -apple-system, sans-serif', default: undefined })}
               fill="#4A3728"
             >
               {LABEL_DISPLAY[key]}

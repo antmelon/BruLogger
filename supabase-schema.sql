@@ -49,6 +49,12 @@ create policy "Users can delete own brews"
   on public.brews for delete
   using (auth.uid() = user_id);
 
+-- Allow half-step ratings (run this if updating an existing table)
+alter table public.brews
+  alter column rating type numeric(3,1),
+  drop constraint if exists brews_rating_check,
+  add constraint brews_rating_check check (rating between 1 and 5 and rating * 2 = floor(rating * 2));
+
 -- Photo URL column (run this if adding to an existing table)
 alter table public.brews add column if not exists photo_url text;
 
