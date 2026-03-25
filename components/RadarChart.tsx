@@ -132,6 +132,7 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
               textAnchor={textAnchor}
               fontSize={11}
               fontWeight="600"
+              fontFamily="system-ui, -apple-system, sans-serif"
               fill="#4A3728"
             >
               {LABEL_DISPLAY[key]}
