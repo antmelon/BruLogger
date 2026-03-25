@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions,
+  View, Text, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions, Platform,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Svg, { Path, Circle, Line as SvgLine, Text as SvgText } from 'react-native-svg';
@@ -86,7 +86,7 @@ function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
         const y = PAD.top + (1 - (r - 1) / 4) * chartH;
         return (
           <SvgText key={r} x={PAD.left - 4} y={y + 4} fontSize={10}
-            fontFamily="system-ui, -apple-system, sans-serif"
+            fontFamily={Platform.select({ web: 'system-ui, -apple-system, sans-serif', default: undefined })}
             fill="#B0A090" textAnchor="end">{r}</SvgText>
         );
       })}

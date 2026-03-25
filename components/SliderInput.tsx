@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 
 interface SliderInputProps {
   label: string;
@@ -30,11 +30,15 @@ export default function SliderInput({ label, value, onChange, min = 1, max = 5 }
         // On mobile we'll render pip buttons as a simple fallback
         <View style={styles.pips}>
           {Array.from({ length: (max - min) / 0.5 + 1 }, (_, i) => min + i * 0.5).map((v) => (
-            <View
+            <Pressable
               key={v}
-              style={[styles.pip, v <= value ? styles.pipFilled : styles.pipEmpty]}
-              onTouchEnd={() => onChange(v)}
-            />
+              onPress={() => onChange(v)}
+              accessibilityRole="button"
+              accessibilityLabel={`${v}`}
+              hitSlop={8}
+            >
+              <View style={[styles.pip, v <= value ? styles.pipFilled : styles.pipEmpty]} />
+            </Pressable>
           ))}
         </View>
       )}

@@ -46,13 +46,19 @@ export default function StarRating({ value, onChange, size = 24, readonly = fals
               <View style={[StyleSheet.absoluteFill, styles.touchRow]}>
                 <TouchableOpacity
                   style={{ flex: 1 }}
-                  onPress={() => onChange?.(star - 0.5)}
+                  onPress={() => onChange?.(Math.max(1, star - 0.5))}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${Math.max(1, star - 0.5)} stars`}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 />
                 <TouchableOpacity
                   style={{ flex: 1 }}
                   onPress={() => onChange?.(star)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${star} stars`}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 />
               </View>
             )}
