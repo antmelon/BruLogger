@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Alert, Platform, Image, Dimensions,
+  TouchableOpacity, Alert, Platform, Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Brew } from '../../types';
@@ -23,18 +23,10 @@ export default function BrewDetailScreen() {
   const router = useRouter();
   const [brew, setBrew] = useState<Brew | null>(null);
   const [loading, setLoading] = useState(true);
-  const [photoHeight, setPhotoHeight] = useState<number | null>(null);
 
   useEffect(() => {
     getBrew(id).then(setBrew).finally(() => setLoading(false));
   }, [id]);
-
-  useEffect(() => {
-    if (brew?.photo_url) {
-      const screenWidth = Dimensions.get('window').width;
-      Image.getSize(brew.photo_url, (w, h) => setPhotoHeight(screenWidth * h / w));
-    }
-  }, [brew?.photo_url]);
 
   async function confirmDelete() {
     if (Platform.OS === 'web') {
@@ -79,11 +71,7 @@ export default function BrewDetailScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Photo */}
       {brew.photo_url ? (
-        <Image
-          source={{ uri: brew.photo_url }}
-          style={[styles.heroPhoto, photoHeight !== null && { height: photoHeight }]}
-          resizeMode="contain"
-        />
+        <Image source={{ uri: brew.photo_url }} style={styles.heroPhoto} resizeMode="contain" />
       ) : null}
 
       {/* Header */}
@@ -158,7 +146,7 @@ export default function BrewDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5EFE6' },
   content: { paddingBottom: 48 },
-  heroPhoto: { width: '100%', height: 220, backgroundColor: '#F5EFE6' },
+  heroPhoto: { width: '100%', maxHeight: 360, backgroundColor: '#F5EFE6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
   error: { color: '#8C7B6E', fontSize: 16 },
 
