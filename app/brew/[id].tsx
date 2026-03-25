@@ -23,10 +23,17 @@ export default function BrewDetailScreen() {
   const router = useRouter();
   const [brew, setBrew] = useState<Brew | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photoAspectRatio, setPhotoAspectRatio] = useState<number | null>(null);
 
   useEffect(() => {
     getBrew(id).then(setBrew).finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (brew?.photo_url) {
+      Image.getSize(brew.photo_url, (w, h) => setPhotoAspectRatio(w / h));
+    }
+  }, [brew?.photo_url]);
 
   async function confirmDelete() {
     if (Platform.OS === 'web') {
@@ -70,8 +77,12 @@ export default function BrewDetailScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Photo */}
-      {brew.photo_url ? (
-        <Image source={{ uri: brew.photo_url }} style={styles.heroPhoto} resizeMode="contain" />
+      {brew.photo_url && photoAspectRatio !== null ? (
+        <Image
+          source={{ uri: brew.photo_url }}
+          style={[styles.heroPhoto, { aspectRatio: photoAspectRatio }]}
+          resizeMode="cover"
+        />
       ) : null}
 
       {/* Header */}
@@ -146,7 +157,7 @@ export default function BrewDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5EFE6' },
   content: { paddingBottom: 48 },
-  heroPhoto: { width: '100%', maxHeight: 360, backgroundColor: '#F5EFE6' },
+  heroPhoto: { alignSelf: 'center', width: '100%', maxWidth: 560, backgroundColor: '#F5EFE6' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
   error: { color: '#8C7B6E', fontSize: 16 },
 
