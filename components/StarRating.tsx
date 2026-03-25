@@ -42,25 +42,17 @@ export default function StarRating({ value, onChange, size = 24, readonly = fals
         return (
           <View key={star} style={{ width: size, height: size }}>
             <StarIcon fill={fill} size={size} clipId={`${uid}-${star}`} />
-            {!readonly && (
-              <View style={[StyleSheet.absoluteFill, styles.touchRow]}>
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  onPress={() => onChange?.(Math.max(1, star - 0.5))}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${Math.max(1, star - 0.5)} stars`}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                />
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  onPress={() => onChange?.(star)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${star} stars`}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                />
-              </View>
+            {!readonly && onChange && (
+              <TouchableOpacity
+                style={StyleSheet.absoluteFill}
+                onPress={(e) => {
+                  const isHalf = e.nativeEvent.locationX < size / 2;
+                  onChange(isHalf ? Math.max(1, star - 0.5) : star);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Rate ${star} stars`}
+              />
             )}
           </View>
         );
@@ -71,5 +63,4 @@ export default function StarRating({ value, onChange, size = 24, readonly = fals
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 4 },
-  touchRow: { flexDirection: 'row' },
 });
