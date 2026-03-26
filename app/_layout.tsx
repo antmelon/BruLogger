@@ -39,9 +39,9 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="brew/[id]" options={{ headerShown: true, title: 'Brew Details', headerTintColor: '#8B5A2B' }} />
-      <Stack.Screen name="brew/new" options={{ headerShown: true, title: 'Log a Brew', headerTintColor: '#8B5A2B' }} />
-      <Stack.Screen name="brew/edit/[id]" options={{ headerShown: true, title: 'Edit Brew', headerTintColor: '#8B5A2B' }} />
+      <Stack.Screen name="brew/[id]" options={{ headerShown: true, title: 'Brew Details', headerTintColor: '#8B5A2B', headerBackButtonDisplayMode: 'minimal' }} />
+      <Stack.Screen name="brew/new" options={{ headerShown: true, title: 'Log a Brew', headerTintColor: '#8B5A2B', headerBackButtonDisplayMode: 'minimal' }} />
+      <Stack.Screen name="brew/edit/[id]" options={{ headerShown: true, title: 'Edit Brew', headerTintColor: '#8B5A2B', headerBackButtonDisplayMode: 'minimal' }} />
       <Stack.Screen name="auth/callback" />
     </Stack>
   );

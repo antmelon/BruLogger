@@ -12,7 +12,8 @@
       "backgroundColor": "#4A3728"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.BruLogger"
     },
     "android": {
       "adaptiveIcon": {

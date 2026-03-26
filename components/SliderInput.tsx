@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import NativeSlider from '@react-native-community/slider';
 
 interface SliderInputProps {
   label: string;
@@ -27,20 +28,17 @@ export default function SliderInput({ label, value, onChange, min = 1, max = 5 }
           style={{ width: '100%', accentColor: '#8B5A2B' }}
         />
       ) : (
-        // On mobile we'll render pip buttons as a simple fallback
-        <View style={styles.pips}>
-          {Array.from({ length: (max - min) / 0.5 + 1 }, (_, i) => min + i * 0.5).map((v) => (
-            <Pressable
-              key={v}
-              onPress={() => onChange(v)}
-              accessibilityRole="button"
-              accessibilityLabel={`${v}`}
-              hitSlop={8}
-            >
-              <View style={[styles.pip, v <= value ? styles.pipFilled : styles.pipEmpty]} />
-            </Pressable>
-          ))}
-        </View>
+        <NativeSlider
+          style={styles.slider}
+          minimumValue={min}
+          maximumValue={max}
+          step={0.5}
+          value={value}
+          onValueChange={onChange}
+          minimumTrackTintColor="#8B5A2B"
+          maximumTrackTintColor="#D4C5A9"
+          thumbTintColor="#8B5A2B"
+        />
       )}
     </View>
   );
@@ -51,8 +49,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   label: { fontSize: 14, color: '#4A3728', fontWeight: '500' },
   value: { fontSize: 14, color: '#8B5A2B', fontWeight: '700' },
-  pips: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingVertical: 8 },
-  pip: { width: 22, height: 22, borderRadius: 11 },
-  pipFilled: { backgroundColor: '#8B5A2B' },
-  pipEmpty: { backgroundColor: '#D4C5A9' },
+  slider: { width: '100%', height: 40 },
 });

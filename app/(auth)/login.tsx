@@ -28,12 +28,26 @@ export default function LoginScreen() {
 
     if (Platform.OS !== 'web' && data.url) {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      console.log('OAuth result:', result);
+
       if (result.type === 'success' && result.url) {
-        const url = new URL(result.url);
-        const code = url.searchParams.get('code');
-        if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
+        const hash = result.url.split('#')[1] ?? '';
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) console.error('setSession error:', sessionError);
+        } else {
+          // PKCE flow fallback
+          const { error: sessionError } = await supabase.auth.exchangeCodeForSession(result.url);
+          if (sessionError) console.error('exchangeCodeForSession error:', sessionError);
         }
+      } else {
+        console.warn('OAuth did not succeed:', result.type);
       }
     }
   }
