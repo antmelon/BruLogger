@@ -61,14 +61,16 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const response = await fetch(localUri);
-  const blob = await response.blob();
   const ext = localUri.split('.').pop()?.split('?')[0] ?? 'jpg';
   const filename = `${user.id}/${Date.now()}.${ext}`;
+  const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+
+  const formData = new FormData();
+  formData.append('file', { uri: localUri, name: filename, type: contentType } as any);
 
   const { error } = await supabase.storage
     .from('brew-photos')
-    .upload(filename, blob, { contentType: blob.type || `image/${ext}` });
+    .upload(filename, formData);
   if (error) throw error;
 
   const { data } = supabase.storage.from('brew-photos').getPublicUrl(filename);

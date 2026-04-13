@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity,
-  Platform, ActivityIndicator, Image,
+  Platform, ActivityIndicator, Image, ActionSheetIOS, Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel } from '../types';
@@ -72,7 +72,24 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
     setProfile((p) => ({ ...p, [field]: val }));
   }
 
-  async function pickImage() {
+  async function launchCamera() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Camera access is required to take a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+      setPhotoUrl(null);
+    }
+  }
+
+  async function launchLibrary() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -81,7 +98,25 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
     });
     if (!result.canceled && result.assets[0]) {
       setPhotoUri(result.assets[0].uri);
-      setPhotoUrl(null); // replace any existing remote photo
+      setPhotoUrl(null);
+    }
+  }
+
+  function pickImage() {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ['Cancel', 'Take Photo', 'Choose from Library'], cancelButtonIndex: 0 },
+        (buttonIndex) => {
+          if (buttonIndex === 1) launchCamera();
+          else if (buttonIndex === 2) launchLibrary();
+        },
+      );
+    } else {
+      Alert.alert('Add Photo', 'Choose source', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Camera', onPress: launchCamera },
+        { text: 'Photo Library', onPress: launchLibrary },
+      ]);
     }
   }
 
