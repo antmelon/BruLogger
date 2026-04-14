@@ -25,10 +25,11 @@ export default function RootLayout() {
 
     const inAuth = segments[0] === '(auth)';
     const inCallback = segments[0] === 'auth'; // /auth/callback
+    const inLanding = segments.length === 0; // root index (landing page)
 
-    if (!session && !inAuth && !inCallback) {
+    if (!session && !inAuth && !inCallback && !inLanding) {
       router.replace('/(auth)/login');
-    } else if (session && inAuth) {
+    } else if (session && (inAuth || inLanding)) {
       router.replace('/(tabs)');
     }
   }, [session, segments]);
@@ -37,6 +38,7 @@ export default function RootLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="brew/[id]" options={{ headerShown: true, title: 'Brew Details', headerTintColor: '#8B5A2B', headerBackButtonDisplayMode: 'minimal' }} />
