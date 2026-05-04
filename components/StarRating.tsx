@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import Svg, { Path, Defs, ClipPath, Rect } from 'react-native-svg';
+import { colors } from '../lib/theme';
 
 // 5-pointed star centered at (12,12), outer r=10, inner r=4
 const STAR_PATH = 'M12,2 L14.35,8.76 L21.51,8.91 L15.80,13.24 L17.88,20.09 L12,16 L6.12,20.09 L8.20,13.24 L2.49,8.91 L9.65,8.76 Z';
@@ -20,11 +21,11 @@ function StarIcon({ fill, size, clipId }: { fill: 'full' | 'half' | 'empty'; siz
           <Rect x="0" y="0" width="12" height="24" />
         </ClipPath>
       </Defs>
-      <Path d={STAR_PATH} fill="#D4C5A9" />
+      <Path d={STAR_PATH} fill={colors.borderLight} />
       {fill !== 'empty' && (
         <Path
           d={STAR_PATH}
-          fill="#8B5A2B"
+          fill={colors.primary}
           clipPath={fill === 'half' ? `url(#${clipId})` : undefined}
         />
       )}

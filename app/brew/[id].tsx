@@ -6,6 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Brew } from '../../types';
 import { getBrew, deleteBrew } from '../../lib/brews';
+import { colors } from '../../lib/theme';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
 
@@ -23,10 +24,14 @@ export default function BrewDetailScreen() {
   const router = useRouter();
   const [brew, setBrew] = useState<Brew | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
-    getBrew(id).then(setBrew).finally(() => setLoading(false));
+    getBrew(id)
+      .then(setBrew)
+      .catch(() => setLoadError('Failed to load brew.'))
+      .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
@@ -67,15 +72,15 @@ export default function BrewDetailScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#8B5A2B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  if (!brew) {
+  if (loadError || !brew) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.error}>Brew not found.</Text>
+        <Text style={styles.errorText}>{loadError ?? 'Brew not found.'}</Text>
       </View>
     );
   }
@@ -163,15 +168,15 @@ export default function BrewDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5EFE6' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { paddingBottom: 48 },
   heroPhotoContainer: { marginTop: 20, alignItems: 'center' },
-  heroPhoto: { borderRadius: 16, backgroundColor: '#F5EFE6' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
-  error: { color: '#8C7B6E', fontSize: 16 },
+  heroPhoto: { borderRadius: 16, backgroundColor: colors.background },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  errorText: { color: colors.textMedium, fontSize: 16 },
 
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -183,12 +188,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  coffeeName: { fontSize: 22, fontWeight: '800', color: '#4A3728' },
-  roaster: { fontSize: 14, color: '#8C7B6E', marginTop: 4 },
-  date: { fontSize: 13, color: '#B0A090', marginTop: 6 },
+  coffeeName: { fontSize: 22, fontWeight: '800', color: colors.textDark },
+  roaster: { fontSize: 14, color: colors.textMedium, marginTop: 4 },
+  date: { fontSize: 13, color: colors.textLight, marginTop: 6 },
 
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -199,32 +204,32 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#8B5A2B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
 
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#F5EFE6' },
-  infoLabel: { fontSize: 14, color: '#8C7B6E' },
-  infoValue: { fontSize: 14, color: '#4A3728', fontWeight: '600' },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.background },
+  infoLabel: { fontSize: 14, color: colors.textMedium },
+  infoValue: { fontSize: 14, color: colors.textDark, fontWeight: '600' },
 
   radarWrapper: { alignItems: 'center', paddingVertical: 8 },
 
-  notes: { fontSize: 15, color: '#4A3728', lineHeight: 22 },
+  notes: { fontSize: 15, color: colors.textDark, lineHeight: 22 },
 
   actions: { flexDirection: 'row', gap: 12, marginTop: 8, marginHorizontal: 20 },
   editButton: {
     flex: 1,
-    backgroundColor: '#8B5A2B',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  editButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  editButtonText: { color: colors.surface, fontSize: 15, fontWeight: '700' },
   deleteButton: {
     borderWidth: 1.5,
-    borderColor: '#CC4444',
+    borderColor: colors.error,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
     alignItems: 'center',
   },
-  deleteButtonText: { color: '#CC4444', fontSize: 15, fontWeight: '600' },
+  deleteButtonText: { color: colors.error, fontSize: 15, fontWeight: '600' },
 });

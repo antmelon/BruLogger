@@ -4,6 +4,8 @@ import { User } from '@supabase/supabase-js';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { getBrews } from '../../lib/brews';
+import { countBy } from '../../lib/analytics';
+import { colors } from '../../lib/theme';
 import { Brew } from '../../types';
 
 interface Stats {
@@ -16,20 +18,15 @@ interface Stats {
 function computeStats(brews: Brew[]): Stats {
   if (brews.length === 0) return { total: 0, avgRating: null, topMethod: null, topOrigin: null };
 
-  const rated = brews.filter((b) => b.rating);
+  const rated = brews.filter((b): b is Brew & { rating: number } => !!b.rating);
   const avgRating = rated.length
-    ? rated.reduce((sum, b) => sum + b.rating!, 0) / rated.length
+    ? rated.reduce((sum, b) => sum + b.rating, 0) / rated.length
     : null;
 
-  const methodCounts: Record<string, number> = {};
-  for (const b of brews) methodCounts[b.brew_method] = (methodCounts[b.brew_method] ?? 0) + 1;
-  const topMethod = Object.entries(methodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const topMethod = countBy(brews.map((b) => b.brew_method))[0]?.label ?? null;
 
-  const originCounts: Record<string, number> = {};
-  for (const b of brews) {
-    if (b.origin) originCounts[b.origin] = (originCounts[b.origin] ?? 0) + 1;
-  }
-  const topOrigin = Object.entries(originCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const origins = brews.filter((b): b is Brew & { origin: string } => !!b.origin).map((b) => b.origin);
+  const topOrigin = countBy(origins)[0]?.label ?? null;
 
   return { total: brews.length, avgRating, topMethod, topOrigin };
 }
@@ -55,13 +52,14 @@ export default function ProfileScreen() {
   useFocusEffect(useCallback(() => {
     getBrews()
       .then((brews) => setStats(computeStats(brews)))
+      .catch(() => setStats(null))
       .finally(() => setLoading(false));
   }, []));
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#8B5A2B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -101,12 +99,12 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5EFE6' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 24 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
 
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 28,
     alignItems: 'center',
@@ -121,8 +119,8 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#8B5A2B',
-    color: '#FFFFFF',
+    backgroundColor: colors.primary,
+    color: colors.surface,
     fontSize: 32,
     fontWeight: '700',
     textAlign: 'center',
@@ -130,11 +128,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-  name: { fontSize: 20, fontWeight: '700', color: '#4A3728', marginBottom: 4 },
-  email: { fontSize: 14, color: '#8C7B6E' },
+  name: { fontSize: 20, fontWeight: '700', color: colors.textDark, marginBottom: 4 },
+  email: { fontSize: 14, color: colors.textMedium },
 
   statsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -147,7 +145,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#8B5A2B',
+    color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 16,
@@ -160,19 +158,19 @@ const styles = StyleSheet.create({
   statTile: {
     flex: 1,
     minWidth: '40%',
-    backgroundColor: '#F5EFE6',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
   },
-  statValue: { fontSize: 18, fontWeight: '800', color: '#4A3728', marginBottom: 4 },
-  statLabel: { fontSize: 12, color: '#8C7B6E', fontWeight: '500' },
+  statValue: { fontSize: 18, fontWeight: '800', color: colors.textDark, marginBottom: 4 },
+  statLabel: { fontSize: 12, color: colors.textMedium, fontWeight: '500' },
 
   signOut: {
     borderWidth: 1.5,
-    borderColor: '#8B5A2B',
+    borderColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  signOutText: { color: '#8B5A2B', fontSize: 15, fontWeight: '600' },
+  signOutText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
 });

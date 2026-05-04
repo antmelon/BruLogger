@@ -1,20 +1,15 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity,
-  Platform, ActivityIndicator, Image, ActionSheetIOS, Alert,
+  ActivityIndicator, Image, ActionSheetIOS, Alert, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel } from '../types';
+import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../types';
 import { uploadBrewPhoto } from '../lib/brews';
+import { colors } from '../lib/theme';
 import SliderInput from './SliderInput';
 import StarRating from './StarRating';
 import { ImageIcon } from './icons';
-
-const BREW_METHODS: BrewMethod[] = [
-  'Pour Over', 'French Press', 'Espresso', 'AeroPress', 'Cold Brew', 'Other',
-];
-
-const ROAST_LEVELS: RoastLevel[] = ['Light', 'Medium-Light', 'Medium', 'Medium-Dark', 'Dark'];
 
 const DEFAULT_PROFILE: FlavorProfile = { aromatics: 3, acidity: 3, sweetness: 3, aftertaste: 3, body: 3 };
 
@@ -63,8 +58,8 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [generalNotes, setGeneralNotes] = useState(initial.general_notes ?? '');
   const [rating, setRating] = useState(initial.rating ?? 0);
   const [profile, setProfile] = useState<FlavorProfile>(initial.flavor_profile ?? DEFAULT_PROFILE);
-  const [photoUri, setPhotoUri] = useState<string | null>(null); // newly picked local URI
-  const [photoUrl, setPhotoUrl] = useState<string | null>(initial.photo_url ?? null); // existing remote URL
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(initial.photo_url ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,7 +121,8 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
     setError(null);
     setSaving(true);
     try {
-      let resolvedPhotoUrl: string | undefined;
+      // null = no photo (either removed or never set); string = photo URL to persist
+      let resolvedPhotoUrl: string | null = null;
       if (photoUri) {
         resolvedPhotoUrl = await uploadBrewPhoto(photoUri);
       } else if (photoUrl) {
@@ -152,8 +148,9 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
         flavor_profile: profile,
         photo_url: resolvedPhotoUrl,
       });
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
+    } finally {
       setSaving(false);
     }
   }
@@ -172,18 +169,18 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
             value={coffeeName}
             onChangeText={setCoffeeName}
             placeholder="e.g. Ethiopia Yirgacheffe"
-            placeholderTextColor="#B0A090"
+            placeholderTextColor={colors.textLight}
           />
         </View>
 
         <View style={styles.row2}>
           <View style={[styles.fieldGroup, { flex: 1 }]}>
             <Text style={styles.label}>Roaster</Text>
-            <TextInput style={styles.input} value={roaster} onChangeText={setRoaster} placeholder="Roaster name" placeholderTextColor="#B0A090" />
+            <TextInput style={styles.input} value={roaster} onChangeText={setRoaster} placeholder="Roaster name" placeholderTextColor={colors.textLight} />
           </View>
           <View style={[styles.fieldGroup, { flex: 1 }]}>
             <Text style={styles.label}>Origin</Text>
-            <TextInput style={styles.input} value={origin} onChangeText={setOrigin} placeholder="Country/Region" placeholderTextColor="#B0A090" />
+            <TextInput style={styles.input} value={origin} onChangeText={setOrigin} placeholder="Country/Region" placeholderTextColor={colors.textLight} />
           </View>
         </View>
 
@@ -192,11 +189,11 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
         <View style={styles.row2}>
           <View style={[styles.fieldGroup, { flex: 1 }]}>
             <Text style={styles.label}>Varietal</Text>
-            <TextInput style={styles.input} value={varietal} onChangeText={setVarietal} placeholder="e.g. Gesha, Bourbon" placeholderTextColor="#B0A090" />
+            <TextInput style={styles.input} value={varietal} onChangeText={setVarietal} placeholder="e.g. Gesha, Bourbon" placeholderTextColor={colors.textLight} />
           </View>
           <View style={[styles.fieldGroup, { flex: 1 }]}>
             <Text style={styles.label}>Processing Method</Text>
-            <TextInput style={styles.input} value={processingMethod} onChangeText={setProcessingMethod} placeholder="e.g. Washed, Natural" placeholderTextColor="#B0A090" />
+            <TextInput style={styles.input} value={processingMethod} onChangeText={setProcessingMethod} placeholder="e.g. Washed, Natural" placeholderTextColor={colors.textLight} />
           </View>
         </View>
       </View>
@@ -208,27 +205,27 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Grind Size</Text>
-          <TextInput style={styles.input} value={grindSize} onChangeText={setGrindSize} placeholder="e.g. Medium-Fine" placeholderTextColor="#B0A090" />
+          <TextInput style={styles.input} value={grindSize} onChangeText={setGrindSize} placeholder="e.g. Medium-Fine" placeholderTextColor={colors.textLight} />
         </View>
 
         <View style={styles.row3}>
           <View style={[styles.fieldGroup, { flex: 1 }]}>
             <Text style={styles.label}>Water (°C)</Text>
-            <TextInput style={styles.input} value={waterTemp} onChangeText={setWaterTemp} keyboardType="numeric" placeholder="93" placeholderTextColor="#B0A090" />
+            <TextInput style={styles.input} value={waterTemp} onChangeText={setWaterTemp} keyboardType="numeric" placeholder="93" placeholderTextColor={colors.textLight} />
           </View>
           <View style={[styles.fieldGroup, { flex: 1 }]}>
             <Text style={styles.label}>Dose (g)</Text>
-            <TextInput style={styles.input} value={dose} onChangeText={setDose} keyboardType="numeric" placeholder="18" placeholderTextColor="#B0A090" />
+            <TextInput style={styles.input} value={dose} onChangeText={setDose} keyboardType="numeric" placeholder="18" placeholderTextColor={colors.textLight} />
           </View>
           <View style={[styles.fieldGroup, { flex: 1 }]}>
             <Text style={styles.label}>Yield (g)</Text>
-            <TextInput style={styles.input} value={yieldG} onChangeText={setYieldG} keyboardType="numeric" placeholder="36" placeholderTextColor="#B0A090" />
+            <TextInput style={styles.input} value={yieldG} onChangeText={setYieldG} keyboardType="numeric" placeholder="36" placeholderTextColor={colors.textLight} />
           </View>
         </View>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Brew Time (seconds)</Text>
-          <TextInput style={styles.input} value={brewTime} onChangeText={setBrewTime} keyboardType="numeric" placeholder="240" placeholderTextColor="#B0A090" />
+          <TextInput style={styles.input} value={brewTime} onChangeText={setBrewTime} keyboardType="numeric" placeholder="240" placeholderTextColor={colors.textLight} />
         </View>
       </View>
 
@@ -253,7 +250,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
             value={flavorNotes}
             onChangeText={setFlavorNotes}
             placeholder="e.g. Blueberry, jasmine, dark chocolate..."
-            placeholderTextColor="#B0A090"
+            placeholderTextColor={colors.textLight}
             multiline
             numberOfLines={3}
           />
@@ -266,7 +263,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
             value={generalNotes}
             onChangeText={setGeneralNotes}
             placeholder="Anything else worth noting..."
-            placeholderTextColor="#B0A090"
+            placeholderTextColor={colors.textLight}
             multiline
             numberOfLines={3}
           />
@@ -284,7 +281,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
         {(photoUri || photoUrl) ? (
           <View>
             <Image
-              source={{ uri: photoUri ?? photoUrl! }}
+              source={{ uri: (photoUri ?? photoUrl) as string }}
               style={styles.photoPreview}
               resizeMode="contain"
             />
@@ -297,13 +294,13 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
                 style={[styles.photoActionBtn, styles.photoActionRemove]}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.photoActionText, { color: '#CC4444' }]}>Remove</Text>
+                <Text style={[styles.photoActionText, { color: colors.error }]}>Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
           <TouchableOpacity onPress={pickImage} style={styles.photoPlaceholder} activeOpacity={0.7}>
-            <ImageIcon size={28} color="#B0A090" />
+            <ImageIcon size={28} color={colors.textLight} />
             <Text style={styles.photoPlaceholderText}>Add a photo of your brew</Text>
           </TouchableOpacity>
         )}
@@ -313,7 +310,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 
       <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={saving} activeOpacity={0.85}>
         {saving
-          ? <ActivityIndicator color="#FFFFFF" />
+          ? <ActivityIndicator color={colors.surface} />
           : <Text style={styles.submitText}>{submitLabel}</Text>}
       </TouchableOpacity>
     </ScrollView>
@@ -321,10 +318,10 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5EFE6' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 48 },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
@@ -337,22 +334,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#8B5A2B',
+    color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 14,
   },
   fieldGroup: { marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: '#4A3728', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textDark, marginBottom: 6 },
   input: {
     borderWidth: 1.5,
-    borderColor: '#E8DFCF',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#4A3728',
-    backgroundColor: '#FDFAF6',
+    color: colors.textDark,
+    backgroundColor: colors.surfaceWarm,
   },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
   row2: { flexDirection: 'row', gap: 10 },
@@ -360,49 +357,49 @@ const styles = StyleSheet.create({
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
     borderWidth: 1.5,
-    borderColor: '#D4C5A9',
+    borderColor: colors.borderLight,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#FDFAF6',
+    backgroundColor: colors.surfaceWarm,
   },
-  pillActive: { backgroundColor: '#8B5A2B', borderColor: '#8B5A2B' },
-  pillText: { fontSize: 13, color: '#8C7B6E', fontWeight: '500' },
-  pillTextActive: { color: '#FFFFFF', fontWeight: '700' },
-  errorText: { color: '#CC4444', fontSize: 14, marginBottom: 12, textAlign: 'center' },
+  pillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  pillText: { fontSize: 13, color: colors.textMedium, fontWeight: '500' },
+  pillTextActive: { color: colors.surface, fontWeight: '700' },
+  errorText: { color: colors.error, fontSize: 14, marginBottom: 12, textAlign: 'center' },
   photoPlaceholder: {
     borderWidth: 1.5,
-    borderColor: '#D4C5A9',
+    borderColor: colors.borderLight,
     borderStyle: 'dashed',
     borderRadius: 12,
     paddingVertical: 28,
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FDFAF6',
+    backgroundColor: colors.surfaceWarm,
   },
-  photoPlaceholderText: { fontSize: 14, color: '#B0A090' },
-  photoPreview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: '#F5EFE6' },
+  photoPlaceholderText: { fontSize: 14, color: colors.textLight },
+  photoPreview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: colors.background },
   photoActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
   photoActionBtn: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: '#D4C5A9',
+    borderColor: colors.borderLight,
     borderRadius: 10,
     paddingVertical: 8,
     alignItems: 'center',
   },
-  photoActionRemove: { borderColor: '#CC4444' },
-  photoActionText: { fontSize: 14, fontWeight: '600', color: '#8C7B6E' },
+  photoActionRemove: { borderColor: colors.error },
+  photoActionText: { fontSize: 14, fontWeight: '600', color: colors.textMedium },
   submitButton: {
-    backgroundColor: '#8B5A2B',
+    backgroundColor: colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: '#8B5A2B',
+    shadowColor: colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  submitText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  submitText: { color: colors.surface, fontSize: 16, fontWeight: '700' },
 });

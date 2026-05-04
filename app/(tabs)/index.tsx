@@ -4,13 +4,11 @@ import {
   ActivityIndicator, RefreshControl, TextInput, ScrollView,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Brew, BrewMethod, RoastLevel } from '../../types';
+import { Brew, BrewMethod, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../../types';
+import { colors } from '../../lib/theme';
 import { getBrews } from '../../lib/brews';
 import StarRating from '../../components/StarRating';
 import { CoffeeIcon, SearchIcon } from '../../components/icons';
-
-const BREW_METHODS: BrewMethod[] = ['Pour Over', 'French Press', 'Espresso', 'AeroPress', 'Cold Brew', 'Other'];
-const ROAST_LEVELS: RoastLevel[] = ['Light', 'Medium-Light', 'Medium', 'Medium-Dark', 'Dark'];
 
 function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
   const date = new Date(brew.created_at).toLocaleDateString('en-US', {
@@ -51,7 +49,7 @@ function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
   );
 }
 
-function FilterPill<T extends string>({
+function FilterPill({
   label, active, onPress,
 }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -70,6 +68,7 @@ export default function BrewsScreen() {
   const [brews, setBrews] = useState<Brew[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [query, setQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState<BrewMethod | null>(null);
@@ -82,8 +81,9 @@ export default function BrewsScreen() {
     try {
       const data = await getBrews();
       setBrews(data);
-    } catch (e) {
-      // silently fail — user will see empty state
+      setLoadError(null);
+    } catch {
+      setLoadError('Failed to load brews. Pull down to retry.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -116,7 +116,7 @@ export default function BrewsScreen() {
     });
   }, [brews, query, methodFilter, roastFilter, ratingFilter, sortBy]);
 
-  const hasActiveFilters = methodFilter || roastFilter || ratingFilter || sortBy !== 'newest';
+  const hasActiveFilters = Boolean(methodFilter || roastFilter || ratingFilter) || sortBy !== 'newest';
 
   function clearFilters() {
     setMethodFilter(null);
@@ -128,7 +128,7 @@ export default function BrewsScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#8B5A2B" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -138,13 +138,13 @@ export default function BrewsScreen() {
       {/* Search bar */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
-          <SearchIcon size={16} color="#B0A090" />
+          <SearchIcon size={16} color={colors.textLight} />
           <TextInput
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
             placeholder="Search brews..."
-            placeholderTextColor="#B0A090"
+            placeholderTextColor={colors.textLight}
             clearButtonMode="while-editing"
           />
           {query.length > 0 && (
@@ -235,21 +235,24 @@ export default function BrewsScreen() {
         data={filtered}
         keyExtractor={(b) => b.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadBrews(); }} tintColor="#8B5A2B" />}
+        removeClippedSubviews
+        initialNumToRender={10}
+        maxToRenderPerBatch={20}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadBrews(); }} tintColor={colors.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              {brews.length === 0
-                ? <CoffeeIcon size={48} color="#C4B8A8" strokeWidth={1.25} />
-                : <SearchIcon size={48} color="#C4B8A8" strokeWidth={1.25} />}
+              {loadError ? null : brews.length === 0
+                ? <CoffeeIcon size={48} color={colors.textFaint} strokeWidth={1.25} />
+                : <SearchIcon size={48} color={colors.textFaint} strokeWidth={1.25} />}
             </View>
             <Text style={styles.emptyTitle}>
-              {brews.length === 0 ? 'No brews yet' : 'No results'}
+              {loadError ? 'Could not load brews' : brews.length === 0 ? 'No brews yet' : 'No results'}
             </Text>
             <Text style={styles.emptyText}>
-              {brews.length === 0
+              {loadError ?? (brews.length === 0
                 ? 'Tap the button below to log your first brew.'
-                : 'Try adjusting your search or filters.'}
+                : 'Try adjusting your search or filters.')}
             </Text>
           </View>
         }
@@ -266,8 +269,8 @@ export default function BrewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5EFE6' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6' },
+  container: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
 
   searchRow: {
     flexDirection: 'row',
@@ -281,7 +284,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -292,22 +295,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-searchInput: { flex: 1, fontSize: 15, color: '#4A3728' },
-  clearText: { fontSize: 13, color: '#B0A090' },
+  searchInput: { flex: 1, fontSize: 15, color: colors.textDark },
+  clearText: { fontSize: 13, color: colors.textLight },
   filterToggle: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1.5,
-    borderColor: '#E8DFCF',
+    borderColor: colors.border,
   },
-  filterToggleActive: { backgroundColor: '#8B5A2B', borderColor: '#8B5A2B' },
-  filterToggleText: { fontSize: 14, fontWeight: '600', color: '#8C7B6E' },
-  filterToggleTextActive: { color: '#FFFFFF' },
+  filterToggleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterToggleText: { fontSize: 14, fontWeight: '600', color: colors.textMedium },
+  filterToggleTextActive: { color: colors.surface },
 
   filterPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     borderRadius: 14,
     padding: 14,
@@ -319,24 +322,24 @@ searchInput: { flex: 1, fontSize: 15, color: '#4A3728' },
     elevation: 2,
   },
   filterSection: { marginBottom: 12 },
-  filterLabel: { fontSize: 11, fontWeight: '700', color: '#8B5A2B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
+  filterLabel: { fontSize: 11, fontWeight: '700', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
   pillRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   filterPill: {
     borderWidth: 1.5,
-    borderColor: '#D4C5A9',
+    borderColor: colors.borderLight,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
-  filterPillActive: { backgroundColor: '#8B5A2B', borderColor: '#8B5A2B' },
-  filterPillText: { fontSize: 13, color: '#8C7B6E', fontWeight: '500' },
-  filterPillTextActive: { color: '#FFFFFF', fontWeight: '700' },
+  filterPillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterPillText: { fontSize: 13, color: colors.textMedium, fontWeight: '500' },
+  filterPillTextActive: { color: colors.surface, fontWeight: '700' },
   clearFilters: { alignSelf: 'flex-end', paddingTop: 4 },
-  clearFiltersText: { fontSize: 13, color: '#CC4444', fontWeight: '600' },
+  clearFiltersText: { fontSize: 13, color: colors.error, fontWeight: '600' },
 
   list: { padding: 16, paddingBottom: 100 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
@@ -348,31 +351,31 @@ searchInput: { flex: 1, fontSize: 15, color: '#4A3728' },
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   cardTitles: { flex: 1 },
-  coffeeName: { fontSize: 16, fontWeight: '700', color: '#4A3728' },
-  roaster: { fontSize: 13, color: '#8C7B6E', marginTop: 2 },
-  date: { fontSize: 12, color: '#B0A090', marginLeft: 8 },
+  coffeeName: { fontSize: 16, fontWeight: '700', color: colors.textDark },
+  roaster: { fontSize: 13, color: colors.textMedium, marginTop: 2 },
+  date: { fontSize: 12, color: colors.textLight, marginLeft: 8 },
   tags: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 6 },
-  tag: { backgroundColor: '#F5EFE6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  tagText: { fontSize: 12, color: '#8B5A2B', fontWeight: '600' },
-  flavorNotes: { fontSize: 13, color: '#6B5B4E', fontStyle: 'italic', marginTop: 4 },
+  tag: { backgroundColor: colors.background, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  tagText: { fontSize: 12, color: colors.primary, fontWeight: '600' },
+  flavorNotes: { fontSize: 13, color: colors.textMuted, fontStyle: 'italic', marginTop: 4 },
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyIcon: { marginBottom: 12 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#4A3728', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#8C7B6E', textAlign: 'center' },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.textDark, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: colors.textMedium, textAlign: 'center' },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
     left: 24,
-    backgroundColor: '#8B5A2B',
+    backgroundColor: colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: '#8B5A2B',
+    shadowColor: colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  fabText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  fabText: { color: colors.surface, fontSize: 16, fontWeight: '700' },
 });

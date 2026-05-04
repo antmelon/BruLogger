@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import Svg, { Polygon, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { FlavorProfile } from '../types';
+import { colors } from '../lib/theme';
 
 interface RadarChartProps {
   profile: FlavorProfile;
@@ -32,7 +33,7 @@ function polarToCartesian(
   centerY: number,
   radius: number,
   angleIndex: number,
-  total: number
+  total: number,
 ): { x: number; y: number } {
   // Start from top (-90 deg), go clockwise
   const angle = (Math.PI * 2 * angleIndex) / total - Math.PI / 2;
@@ -43,7 +44,7 @@ function polarToCartesian(
 }
 
 export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
-  const padding = 52; // room for labels on left/right edges
+  const padding = 52;
   const svgWidth = size + padding * 2;
   const svgHeight = size + padding;
   const cx = svgWidth / 2;
@@ -52,7 +53,6 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
   const labelOffset = size * 0.1;
   const n = LABELS.length;
 
-  // Build ring polygons (background grid)
   const rings = Array.from({ length: NUM_RINGS }, (_, ring) => {
     const r = (maxRadius * (ring + 1)) / NUM_RINGS;
     const points = LABELS.map((_, i) => {
@@ -62,7 +62,6 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
     return points;
   });
 
-  // Build data polygon
   const dataPoints = LABELS.map((key, i) => {
     const value = profile[key] ?? 0;
     const r = (maxRadius * value) / MAX_VALUE;
@@ -79,7 +78,7 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
             key={i}
             points={points}
             fill="none"
-            stroke="#D4C5A9"
+            stroke={colors.borderLight}
             strokeWidth={1}
           />
         ))}
@@ -94,7 +93,7 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
               y1={cy}
               x2={outer.x}
               y2={outer.y}
-              stroke="#D4C5A9"
+              stroke={colors.borderLight}
               strokeWidth={1}
             />
           );
@@ -103,8 +102,8 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
         {/* Data polygon */}
         <Polygon
           points={dataPoints}
-          fill="rgba(139, 90, 43, 0.25)"
-          stroke="#8B5A2B"
+          fill={colors.primaryFaded}
+          stroke={colors.primary}
           strokeWidth={2}
         />
 
@@ -114,7 +113,7 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
           const r = (maxRadius * value) / MAX_VALUE;
           const pt = polarToCartesian(cx, cy, r, i, n);
           return (
-            <Circle key={i} cx={pt.x} cy={pt.y} r={4} fill="#8B5A2B" />
+            <Circle key={i} cx={pt.x} cy={pt.y} r={4} fill={colors.primary} />
           );
         })}
 
@@ -133,7 +132,7 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
               fontSize={11}
               fontWeight="600"
               fontFamily={Platform.select({ web: 'system-ui, -apple-system, sans-serif', default: undefined })}
-              fill="#4A3728"
+              fill={colors.textDark}
             >
               {LABEL_DISPLAY[key]}
             </SvgText>

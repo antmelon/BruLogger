@@ -66,7 +66,7 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
   const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
 
   const formData = new FormData();
-  formData.append('file', { uri: localUri, name: filename, type: contentType } as any);
+  formData.append('file', { uri: localUri, name: filename, type: contentType } as unknown as Blob);
 
   const { error } = await supabase.storage
     .from('brew-photos')
@@ -75,4 +75,13 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
 
   const { data } = supabase.storage.from('brew-photos').getPublicUrl(filename);
   return data.publicUrl;
+}
+
+export async function deleteBrewPhoto(publicUrl: string): Promise<void> {
+  const marker = '/brew-photos/';
+  const idx = publicUrl.indexOf(marker);
+  if (idx === -1) return;
+  const path = publicUrl.slice(idx + marker.length);
+  const { error } = await supabase.storage.from('brew-photos').remove([path]);
+  if (error) throw error;
 }

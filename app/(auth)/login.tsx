@@ -1,8 +1,8 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
-import { Platform } from 'react-native';
+import { colors } from '../../lib/theme';
 import { CoffeeIcon } from '../../components/icons';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -28,7 +28,6 @@ export default function LoginScreen() {
 
     if (Platform.OS !== 'web' && data.url) {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-      console.log('OAuth result:', result);
 
       if (result.type === 'success' && result.url) {
         const hash = result.url.split('#')[1] ?? '';
@@ -56,7 +55,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.iconWrapper}>
-          <CoffeeIcon size={48} color="#9E8E7E" strokeWidth={1.5} />
+          <CoffeeIcon size={48} color={colors.textMedium} strokeWidth={1.5} />
         </View>
         <Text style={styles.title}>BruLogger</Text>
         <Text style={styles.title}>Coffee Journal</Text>
@@ -73,13 +72,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5EFE6',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 40,
     alignItems: 'center',
@@ -92,15 +91,15 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   iconWrapper: { marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: '700', color: '#4A3728', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#8C7B6E', marginBottom: 32, textAlign: 'center' },
+  title: { fontSize: 28, fontWeight: '700', color: colors.textDark, marginBottom: 8 },
+  subtitle: { fontSize: 15, color: colors.textMedium, marginBottom: 32, textAlign: 'center' },
   button: {
-    backgroundColor: '#8B5A2B',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 28,
     width: '100%',
     alignItems: 'center',
   },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.surface, fontSize: 16, fontWeight: '600' },
 });

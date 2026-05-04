@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { colors } from '../lib/theme';
 import { CoffeeIcon, StarIcon, SearchIcon } from '../components/icons';
 
 const FEATURES = [
@@ -27,11 +27,11 @@ export default function LandingScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) router.replace('/(tabs)');
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) router.replace('/(tabs)');
     });
 
@@ -47,7 +47,7 @@ export default function LandingScreen() {
       {/* Hero */}
       <View style={styles.hero}>
         <View style={styles.iconWrapper}>
-          <CoffeeIcon size={56} color="#8B5A2B" strokeWidth={1.5} />
+          <CoffeeIcon size={56} color={colors.primary} strokeWidth={1.5} />
         </View>
         <Text style={styles.appName}>BruLogger</Text>
         <Text style={styles.tagline}>Your personal coffee journal.</Text>
@@ -68,7 +68,7 @@ export default function LandingScreen() {
         {FEATURES.map((f) => (
           <View key={f.title} style={styles.featureCard}>
             <View style={styles.featureIconWrapper}>
-              <f.Icon size={28} color="#8B5A2B" strokeWidth={1.5} />
+              <f.Icon size={28} color={colors.primary} strokeWidth={1.5} />
             </View>
             <Text style={styles.featureTitle}>{f.title}</Text>
             <Text style={styles.featureDescription}>{f.description}</Text>
@@ -94,7 +94,7 @@ export default function LandingScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#F5EFE6' },
+  scroll: { flex: 1, backgroundColor: colors.background },
   container: {
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
 
-  // Hero
   hero: {
     alignItems: 'center',
     maxWidth: 560,
@@ -110,11 +109,11 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   iconWrapper: {
-    backgroundColor: '#FFF8F0',
+    backgroundColor: colors.surfaceIcon,
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
-    shadowColor: '#8B5A2B',
+    shadowColor: colors.primary,
     shadowOpacity: 0.12,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
@@ -123,41 +122,40 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 42,
     fontWeight: '800',
-    color: '#4A3728',
+    color: colors.textDark,
     letterSpacing: -0.5,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#8B5A2B',
+    color: colors.primary,
     marginBottom: 16,
   },
   subTagline: {
     fontSize: 16,
-    color: '#8C7B6E',
+    color: colors.textMedium,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 36,
   },
   ctaButton: {
-    backgroundColor: '#8B5A2B',
+    backgroundColor: colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 40,
-    shadowColor: '#8B5A2B',
+    shadowColor: colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 17,
     fontWeight: '700',
   },
 
-  // Features
   features: {
     width: '100%',
     maxWidth: 700,
@@ -168,7 +166,7 @@ const styles = StyleSheet.create({
     marginBottom: 56,
   },
   featureCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 24,
     flex: Platform.OS === 'web' ? 1 : undefined,
@@ -182,7 +180,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   featureIconWrapper: {
-    backgroundColor: '#FFF8F0',
+    backgroundColor: colors.surfaceIcon,
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
@@ -190,21 +188,20 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#4A3728',
+    color: colors.textDark,
     marginBottom: 8,
     textAlign: 'center',
   },
   featureDescription: {
     fontSize: 14,
-    color: '#8C7B6E',
+    color: colors.textMedium,
     textAlign: 'center',
     lineHeight: 20,
   },
 
-  // Bottom CTA
   bottomCta: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     paddingVertical: 40,
     paddingHorizontal: 32,
@@ -220,24 +217,24 @@ const styles = StyleSheet.create({
   bottomCtaText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#4A3728',
+    color: colors.textDark,
     marginBottom: 20,
   },
   secondaryButton: {
     borderWidth: 2,
-    borderColor: '#8B5A2B',
+    borderColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 13,
     paddingHorizontal: 32,
   },
   secondaryButtonText: {
-    color: '#8B5A2B',
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '700',
   },
 
   footer: {
     fontSize: 12,
-    color: '#C4B8A8',
+    color: colors.textFaint,
   },
 });

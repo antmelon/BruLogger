@@ -1,0 +1,17 @@
+export const colors = {
+  primary: '#8B5A2B',
+  background: '#F5EFE6',
+  surface: '#FFFFFF',
+  surfaceWarm: '#FDFAF6',
+  surfaceIcon: '#FFF8F0',
+  textDark: '#4A3728',
+  textMedium: '#8C7B6E',
+  textLight: '#B0A090',
+  textMuted: '#6B5B4E',
+  textFaint: '#C4B8A8',
+  border: '#E8DFCF',
+  borderLight: '#D4C5A9',
+  error: '#CC4444',
+  accent: '#C4956A',
+  primaryFaded: 'rgba(139, 90, 43, 0.25)',
+} as const;

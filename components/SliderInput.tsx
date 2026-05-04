@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import NativeSlider from '@react-native-community/slider';
+import { colors } from '../lib/theme';
 
 interface SliderInputProps {
   label: string;
@@ -25,7 +26,7 @@ export default function SliderInput({ label, value, onChange, min = 1, max = 5 }
           step={0.5}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          style={{ width: '100%', accentColor: '#8B5A2B' }}
+          style={{ width: '100%', accentColor: colors.primary }}
         />
       ) : (
         <NativeSlider
@@ -35,9 +36,9 @@ export default function SliderInput({ label, value, onChange, min = 1, max = 5 }
           step={0.5}
           value={value}
           onValueChange={onChange}
-          minimumTrackTintColor="#8B5A2B"
-          maximumTrackTintColor="#D4C5A9"
-          thumbTintColor="#8B5A2B"
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.borderLight}
+          thumbTintColor={colors.primary}
         />
       )}
     </View>
@@ -47,7 +48,7 @@ export default function SliderInput({ label, value, onChange, min = 1, max = 5 }
 const styles = StyleSheet.create({
   container: { marginBottom: 12 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  label: { fontSize: 14, color: '#4A3728', fontWeight: '500' },
-  value: { fontSize: 14, color: '#8B5A2B', fontWeight: '700' },
+  label: { fontSize: 14, color: colors.textDark, fontWeight: '500' },
+  value: { fontSize: 14, color: colors.primary, fontWeight: '700' },
   slider: { width: '100%', height: 40 },
 });

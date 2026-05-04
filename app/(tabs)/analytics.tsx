@@ -5,6 +5,8 @@ import {
 import { useFocusEffect } from 'expo-router';
 import Svg, { Path, Circle, Line as SvgLine, Text as SvgText } from 'react-native-svg';
 import { getBrews } from '../../lib/brews';
+import { colors } from '../../lib/theme';
+import { avgFlavorProfile, countBy } from '../../lib/analytics';
 import { Brew, FlavorProfile } from '../../types';
 import RadarChart from '../../components/RadarChart';
 
@@ -29,10 +31,10 @@ function HorizBarChart({ data }: { data: { label: string; value: number }[] }) {
 }
 
 const barStyles = StyleSheet.create({
-  label: { width: 96, fontSize: 13, color: '#6B5B4E' },
-  track: { flex: 1, height: 18, flexDirection: 'row', backgroundColor: '#F5EFE6', borderRadius: 6, overflow: 'hidden' },
-  fill: { backgroundColor: '#8B5A2B', borderRadius: 6 },
-  count: { width: 22, fontSize: 13, fontWeight: '700', color: '#4A3728', textAlign: 'right' },
+  label: { width: 96, fontSize: 13, color: colors.textMuted },
+  track: { flex: 1, height: 18, flexDirection: 'row', backgroundColor: colors.background, borderRadius: 6, overflow: 'hidden' },
+  fill: { backgroundColor: colors.primary, borderRadius: 6 },
+  count: { width: 22, fontSize: 13, fontWeight: '700', color: colors.textDark, textAlign: 'right' },
 });
 
 // ─── Rating trend chart (SVG line chart) ────────────────────────────────────
@@ -40,7 +42,7 @@ const barStyles = StyleSheet.create({
 function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
   const rated = useMemo(() =>
     [...brews]
-      .filter((b) => b.rating)
+      .filter((b): b is Brew & { rating: number } => !!b.rating)
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .slice(-30),
     [brews],
@@ -61,14 +63,13 @@ function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
 
   const points = rated.map((b, i) => ({
     x: PAD.left + (i / (rated.length - 1)) * chartW,
-    y: PAD.top + (1 - (b.rating! - 1) / 4) * chartH,
-    rating: b.rating!,
+    y: PAD.top + (1 - (b.rating - 1) / 4) * chartH,
+    rating: b.rating,
     date: new Date(b.created_at),
   }));
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
-  // Y axis labels: 1–5
   const yLabels = [1, 3, 5];
 
   return (
@@ -78,7 +79,7 @@ function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
         const y = PAD.top + (1 - (r - 1) / 4) * chartH;
         return (
           <SvgLine key={r} x1={PAD.left} y1={y} x2={width - PAD.right} y2={y}
-            stroke="#EDE4D8" strokeWidth={1} />
+            stroke={colors.border} strokeWidth={1} />
         );
       })}
       {/* Y labels */}
@@ -87,14 +88,14 @@ function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
         return (
           <SvgText key={r} x={PAD.left - 4} y={y + 4} fontSize={10}
             fontFamily={Platform.select({ web: 'system-ui, -apple-system, sans-serif', default: undefined })}
-            fill="#B0A090" textAnchor="end">{r}</SvgText>
+            fill={colors.textLight} textAnchor="end">{r}</SvgText>
         );
       })}
       {/* Trend line */}
-      <Path d={linePath} stroke="#C4956A" strokeWidth={2} fill="none" strokeLinejoin="round" />
+      <Path d={linePath} stroke={colors.accent} strokeWidth={2} fill="none" strokeLinejoin="round" />
       {/* Dots */}
       {points.map((p, i) => (
-        <Circle key={i} cx={p.x} cy={p.y} r={4} fill="#8B5A2B" />
+        <Circle key={i} cx={p.x} cy={p.y} r={4} fill={colors.primary} />
       ))}
       {/* First and last date labels */}
       {[points[0], points[points.length - 1]].map((p, i) => (
@@ -104,7 +105,7 @@ function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
           y={H - 2}
           fontSize={10}
           fontFamily="system-ui, -apple-system, sans-serif"
-          fill="#B0A090"
+          fill={colors.textLight}
           textAnchor={i === 0 ? 'start' : 'end'}
         >
           {p.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -116,53 +117,22 @@ function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
 
 const trendStyles = StyleSheet.create({
   empty: { paddingVertical: 24, alignItems: 'center' },
-  emptyText: { fontSize: 14, color: '#B0A090', textAlign: 'center' },
+  emptyText: { fontSize: 14, color: colors.textLight, textAlign: 'center' },
 });
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function avgFlavorProfile(brews: Brew[]): FlavorProfile | null {
-  const withProfile = brews.filter((b) => b.flavor_profile);
-  if (withProfile.length === 0) return null;
-  const sum = withProfile.reduce(
-    (acc, b) => ({
-      aromatics: acc.aromatics + b.flavor_profile!.aromatics,
-      acidity: acc.acidity + b.flavor_profile!.acidity,
-      sweetness: acc.sweetness + b.flavor_profile!.sweetness,
-      aftertaste: acc.aftertaste + b.flavor_profile!.aftertaste,
-      body: acc.body + b.flavor_profile!.body,
-    }),
-    { aromatics: 0, acidity: 0, sweetness: 0, aftertaste: 0, body: 0 },
-  );
-  const n = withProfile.length;
-  return {
-    aromatics: sum.aromatics / n,
-    acidity: sum.acidity / n,
-    sweetness: sum.sweetness / n,
-    aftertaste: sum.aftertaste / n,
-    body: sum.body / n,
-  };
-}
-
-function countBy<T extends string>(items: T[]): { label: T; value: number }[] {
-  const counts: Record<string, number> = {};
-  for (const item of items) counts[item] = (counts[item] ?? 0) + 1;
-  return Object.entries(counts)
-    .map(([label, value]) => ({ label: label as T, value }))
-    .sort((a, b) => b.value - a.value);
-}
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function AnalyticsScreen() {
   const [brews, setBrews] = useState<Brew[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { width } = useWindowDimensions();
   const chartWidth = width - 32 - 40; // screen - horizontal padding - section padding
 
   useFocusEffect(useCallback(() => {
     getBrews()
-      .then(setBrews)
+      .then((data) => { setBrews(data); setLoadError(null); })
+      .catch(() => setLoadError('Failed to load analytics.'))
       .finally(() => setLoading(false));
   }, []));
 
@@ -170,14 +140,23 @@ export default function AnalyticsScreen() {
   const roastCounts = useMemo(() => countBy(brews.filter((b) => b.roast_level).map((b) => b.roast_level!)), [brews]);
   const avgProfile = useMemo(() => avgFlavorProfile(brews), [brews]);
   const avgRating = useMemo(() => {
-    const rated = brews.filter((b) => b.rating);
-    return rated.length ? rated.reduce((s, b) => s + b.rating!, 0) / rated.length : null;
+    const rated = brews.filter((b): b is Brew & { rating: number } => !!b.rating);
+    return rated.length ? rated.reduce((s, b) => s + b.rating, 0) / rated.length : null;
   }, [brews]);
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#8B5A2B" />
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.emptyTitle}>Something went wrong</Text>
+        <Text style={styles.emptyText}>{loadError}</Text>
       </View>
     );
   }
@@ -256,16 +235,16 @@ export default function AnalyticsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5EFE6' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 48, gap: 16 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EFE6', padding: 24 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#4A3728', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#8C7B6E', textAlign: 'center' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, padding: 24 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.textDark, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: colors.textMedium, textAlign: 'center' },
 
   tilesRow: { flexDirection: 'row', gap: 10 },
   tile: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
@@ -275,12 +254,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  tileValue: { fontSize: 22, fontWeight: '800', color: '#4A3728', marginBottom: 4 },
-  tileValueSmall: { fontSize: 16, fontWeight: '800', color: '#4A3728', marginBottom: 4, textAlign: 'center' },
-  tileLabel: { fontSize: 11, color: '#8C7B6E', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center' },
+  tileValue: { fontSize: 22, fontWeight: '800', color: colors.textDark, marginBottom: 4 },
+  tileValueSmall: { fontSize: 16, fontWeight: '800', color: colors.textDark, marginBottom: 4, textAlign: 'center' },
+  tileLabel: { fontSize: 11, color: colors.textMedium, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center' },
 
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -292,19 +271,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#8B5A2B',
+    color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
-  sectionSubtitle: { fontSize: 12, color: '#B0A090', marginBottom: 14 },
+  sectionSubtitle: { fontSize: 12, color: colors.textLight, marginBottom: 14 },
 
   radarWrapper: { alignItems: 'center', paddingVertical: 8 },
 
   profileBreakdown: { gap: 8, marginTop: 8 },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  profileLabel: { width: 88, fontSize: 13, color: '#6B5B4E' },
-  profileTrack: { flex: 1, height: 8, flexDirection: 'row', backgroundColor: '#F5EFE6', borderRadius: 4, overflow: 'hidden' },
-  profileFill: { backgroundColor: '#C4956A', borderRadius: 4 },
-  profileVal: { width: 28, fontSize: 13, fontWeight: '700', color: '#4A3728', textAlign: 'right' },
+  profileLabel: { width: 88, fontSize: 13, color: colors.textMuted },
+  profileTrack: { flex: 1, height: 8, flexDirection: 'row', backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden' },
+  profileFill: { backgroundColor: colors.accent, borderRadius: 4 },
+  profileVal: { width: 28, fontSize: 13, fontWeight: '700', color: colors.textDark, textAlign: 'right' },
 });

@@ -8,6 +8,12 @@ export type BrewMethod =
 
 export type RoastLevel = 'Light' | 'Medium-Light' | 'Medium' | 'Medium-Dark' | 'Dark';
 
+export const BREW_METHODS: BrewMethod[] = [
+  'Pour Over', 'French Press', 'Espresso', 'AeroPress', 'Cold Brew', 'Other',
+];
+
+export const ROAST_LEVELS: RoastLevel[] = ['Light', 'Medium-Light', 'Medium', 'Medium-Dark', 'Dark'];
+
 export interface FlavorProfile {
   aromatics: number;   // 1–5
   acidity: number;     // 1–5
@@ -36,7 +42,7 @@ export interface Brew {
   general_notes?: string;
   rating?: number; // 1–5
   flavor_profile?: FlavorProfile;
-  photo_url?: string;
+  photo_url?: string | null;
 }
 
 export type BrewInsert = Omit<Brew, 'id' | 'user_id' | 'created_at'>;
