@@ -1,11 +1,19 @@
 ---
 name: log-brew
 description: Log a coffee brew to BruLogger from a Telegram message, from text ("V60, Guji natural, 15g/250g, 3:10, blueberry, 4.5 stars"), a photo of the coffee bag, a photo of the brew, or any mix. Also answers questions about recent brews ("what did I brew yesterday?", "same as last time but finer").
+version: 1.0.0
+author: Ant
+prerequisites:
+  commands: [curl]
+metadata:
+  hermes:
+    tags: [Coffee, BruLogger, Journal, Logging]
+    homepage: https://brulogger.vercel.app
 ---
 
 # Log a brew to BruLogger
 
-BruLogger is Ant's coffee journal. This skill turns a message into a brew entry through its HTTP API.
+BruLogger is Ant's coffee journal. This skill turns a message into a brew entry through its HTTP API. Run the API calls with the `terminal` tool. The source of truth for this skill is `integrations/hermes/log-brew/SKILL.md` in the brulogger repo.
 
 ## API
 
