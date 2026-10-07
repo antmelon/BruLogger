@@ -40,14 +40,19 @@ Add to `Brew` as `<name>?: <TsType> | null;`. For a fixed set of choices, also a
 
 Add an `InfoRow` in the right section, rendered only when set, with a unit suffix when relevant (`` `${brew.x}g` ``).
 
-## 6. Optional surfaces (ask yourself whether each applies)
+## 6. HTTP API and Hermes skill
+
+- `lib/brewInput.ts`: add the field to `TEXT_FIELDS` / `NUMBER_FIELDS` (or handle it explicitly, for enums and objects) so `POST /api/brews` accepts it. Unknown keys are rejected. Add a case to `__tests__/brewInput.test.ts`.
+- `integrations/hermes/log-brew/SKILL.md`: add a row to the Fields table so the bot knows to fill it in. Tell the user that Hermes's copy of the skill on melchior needs updating too.
+
+## 7. Optional surfaces (ask yourself whether each applies)
 
 - **List card / search** in `app/(tabs)/index.tsx`: add to the `searchable` array if users would search by it; add a `FilterPill` group if it's a fixed set of choices.
 - **Analytics** (`app/(tabs)/analytics.tsx`, `lib/analytics.ts`): only if it's worth charting. Put the computation in `lib/analytics.ts` with a test.
 - **Glossary** in `CONTEXT.md`: add or extend an entry if it's a new domain concept.
 - **README** feature list, if it's user-visible and notable.
 
-## 7. Verify
+## 8. Verify
 
 ```sh
 npm test && npm run typecheck && npm run lint

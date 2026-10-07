@@ -28,6 +28,7 @@ Env: `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (read in `li
 - `lib/brews.ts`: the only data-access layer (CRUD + photo upload/delete). Screens never call `supabase.from` directly.
 - `lib/analytics.ts`, `lib/form.ts`: pure helpers, unit-tested.
 - `lib/theme.ts`: color tokens. Use `colors.*` and don't hardcode hex values (a few older files still do).
+- `api/brews.ts`: Vercel Node function, the HTTP API used by the Hermes Telegram bot (`GET` recent brews, `POST` create with an optional base64 photo, `?dry_run=1`). Single-user: a bearer token (`BRULOGGER_API_TOKEN`) maps to `BRULOGGER_USER_ID`, and it writes with `SUPABASE_SERVICE_ROLE_KEY`, so the handler (not RLS) scopes rows to that user. Input validation lives in `lib/brewInput.ts`. The bot's skill is `integrations/hermes/log-brew/SKILL.md`; keep it in sync when fields change.
 - `types/index.ts`: hand-written `Brew` type. There are no generated Supabase types, so keep it in sync with the schema manually.
 - `supabase-schema.sql`: schema plus an append-only log of `alter` statements. It is run by hand in the Supabase SQL editor; nothing applies it automatically.
 
