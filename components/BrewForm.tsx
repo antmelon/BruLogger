@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../types';
 import { uploadBrewPhoto } from '../lib/brews';
+import { parseNumberField } from '../lib/form';
 import { colors } from '../lib/theme';
 import SliderInput from './SliderInput';
 import StarRating from './StarRating';
@@ -45,7 +46,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [coffeeName, setCoffeeName] = useState(initial.coffee_name ?? '');
   const [roaster, setRoaster] = useState(initial.roaster ?? '');
   const [origin, setOrigin] = useState(initial.origin ?? '');
-  const [roastLevel, setRoastLevel] = useState<RoastLevel | undefined>(initial.roast_level);
+  const [roastLevel, setRoastLevel] = useState<RoastLevel | undefined>(initial.roast_level ?? undefined);
   const [varietal, setVarietal] = useState(initial.varietal ?? '');
   const [processingMethod, setProcessingMethod] = useState(initial.processing_method ?? '');
   const [brewMethod, setBrewMethod] = useState<BrewMethod | undefined>(initial.brew_method);
@@ -118,6 +119,18 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   async function handleSubmit() {
     if (!coffeeName.trim()) { setError('Coffee name is required.'); return; }
     if (!brewMethod) { setError('Please select a brew method.'); return; }
+
+    const numbers = {
+      water_temp_c: parseNumberField(waterTemp),
+      dose_g: parseNumberField(dose),
+      yield_g: parseNumberField(yieldG),
+      brew_time_s: parseNumberField(brewTime, { integer: true }),
+    };
+    if (Object.values(numbers).some((n) => n === undefined)) {
+      setError('Water temp, dose, yield, and brew time must be numbers.');
+      return;
+    }
+
     setError(null);
     setSaving(true);
     try {
@@ -125,26 +138,30 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
       let resolvedPhotoUrl: string | null = null;
       if (photoUri) {
         resolvedPhotoUrl = await uploadBrewPhoto(photoUri);
+        // Keep the uploaded URL so a retry after a failed save doesn't upload again
+        setPhotoUri(null);
+        setPhotoUrl(resolvedPhotoUrl);
       } else if (photoUrl) {
         resolvedPhotoUrl = photoUrl;
       }
 
+      // Blank fields are sent as null (not undefined) so clearing a field on edit persists
       await onSubmit({
         coffee_name: coffeeName.trim(),
-        roaster: roaster.trim() || undefined,
-        origin: origin.trim() || undefined,
-        roast_level: roastLevel,
-        varietal: varietal.trim() || undefined,
-        processing_method: processingMethod.trim() || undefined,
+        roaster: roaster.trim() || null,
+        origin: origin.trim() || null,
+        roast_level: roastLevel ?? null,
+        varietal: varietal.trim() || null,
+        processing_method: processingMethod.trim() || null,
         brew_method: brewMethod,
-        grind_size: grindSize.trim() || undefined,
-        water_temp_c: waterTemp ? Number(waterTemp) : undefined,
-        dose_g: dose ? Number(dose) : undefined,
-        yield_g: yieldG ? Number(yieldG) : undefined,
-        brew_time_s: brewTime ? Number(brewTime) : undefined,
-        flavor_notes: flavorNotes.trim() || undefined,
-        general_notes: generalNotes.trim() || undefined,
-        rating: rating || undefined,
+        grind_size: grindSize.trim() || null,
+        water_temp_c: numbers.water_temp_c ?? null,
+        dose_g: numbers.dose_g ?? null,
+        yield_g: numbers.yield_g ?? null,
+        brew_time_s: numbers.brew_time_s ?? null,
+        flavor_notes: flavorNotes.trim() || null,
+        general_notes: generalNotes.trim() || null,
+        rating: rating || null,
         flavor_profile: profile,
         photo_url: resolvedPhotoUrl,
       });

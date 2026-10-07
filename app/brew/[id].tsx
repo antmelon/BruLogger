@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Brew } from '../../types';
-import { getBrew, deleteBrew } from '../../lib/brews';
+import { getBrew, deleteBrew, deleteBrewPhoto } from '../../lib/brews';
 import { colors } from '../../lib/theme';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
@@ -50,21 +50,28 @@ export default function BrewDetailScreen() {
     }
   }, [brew?.photo_url]);
 
-  async function confirmDelete() {
-    if (Platform.OS === 'web') {
-      if (!window.confirm('Are you sure you want to delete this brew log?')) return;
+  async function performDelete() {
+    try {
       await deleteBrew(id);
-      router.replace('/(tabs)');
+    } catch {
+      const message = 'Could not delete this brew. Please try again.';
+      if (Platform.OS === 'web') window.alert(message);
+      else Alert.alert('Delete failed', message);
+      return;
+    }
+    if (brew?.photo_url) {
+      await deleteBrewPhoto(brew.photo_url).catch((e) => console.warn('Failed to delete photo:', e));
+    }
+    router.replace('/(tabs)');
+  }
+
+  function confirmDelete() {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to delete this brew log?')) performDelete();
     } else {
       Alert.alert('Delete Brew', 'Are you sure you want to delete this brew log?', [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive',
-          onPress: async () => {
-            await deleteBrew(id);
-            router.replace('/(tabs)');
-          },
-        },
+        { text: 'Delete', style: 'destructive', onPress: performDelete },
       ]);
     }
   }

@@ -1,4 +1,4 @@
-import { getBrews, getBrew, createBrew, deleteBrew } from '../lib/brews';
+import { getBrews, getBrew, createBrew, updateBrew, deleteBrew, deleteBrewPhoto } from '../lib/brews';
 
 const mockOrder = jest.fn();
 const mockSingle = jest.fn();
@@ -124,5 +124,27 @@ describe('deleteBrew', () => {
     const dbError = new Error('delete failed');
     mockEq.mockResolvedValue({ error: dbError });
     await expect(deleteBrew('brew-1')).rejects.toEqual(dbError);
+  });
+});
+
+describe('updateBrew', () => {
+  it('sends null fields through so cleared values are persisted', async () => {
+    mockSingle.mockResolvedValue({ data: mockBrew, error: null });
+    await updateBrew('brew-1', { coffee_name: 'Test', brew_method: 'Espresso', roaster: null, dose_g: null });
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ roaster: null, dose_g: null }));
+    expect(mockEq).toHaveBeenCalledWith('id', 'brew-1');
+  });
+});
+
+describe('deleteBrewPhoto', () => {
+  it('removes the storage path parsed from the public URL', async () => {
+    mockRemove.mockResolvedValue({ error: null });
+    await deleteBrewPhoto('https://x.supabase.co/storage/v1/object/public/brew-photos/user-1/123.jpg');
+    expect(mockRemove).toHaveBeenCalledWith(['user-1/123.jpg']);
+  });
+
+  it('does nothing for URLs outside the brew-photos bucket', async () => {
+    await deleteBrewPhoto('https://example.com/other.jpg');
+    expect(mockRemove).not.toHaveBeenCalled();
   });
 });

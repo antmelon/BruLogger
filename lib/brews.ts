@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { Brew, BrewInsert } from '../types';
 
@@ -61,16 +62,26 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const ext = localUri.split('.').pop()?.split('?')[0] ?? 'jpg';
-  const filename = `${user.id}/${Date.now()}.${ext}`;
-  const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+  let body: Blob | FormData;
+  let filename: string;
 
-  const formData = new FormData();
-  formData.append('file', { uri: localUri, name: filename, type: contentType } as unknown as Blob);
+  if (Platform.OS === 'web') {
+    // Web picker URIs are data:/blob: URLs with no file extension; derive it from the blob type
+    const blob = await (await fetch(localUri)).blob();
+    const ext = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+    filename = `${user.id}/${Date.now()}.${ext}`;
+    body = blob;
+  } else {
+    // Native: upload via FormData so RN streams the file (fetch().blob() broke iOS uploads, see a1fbb5d)
+    const ext = localUri.split('.').pop()?.split('?')[0] ?? 'jpg';
+    filename = `${user.id}/${Date.now()}.${ext}`;
+    body = new FormData();
+    body.append('file', {
+      uri: localUri, name: filename, type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+    } as unknown as Blob);
+  }
 
-  const { error } = await supabase.storage
-    .from('brew-photos')
-    .upload(filename, formData);
+  const { error } = await supabase.storage.from('brew-photos').upload(filename, body);
   if (error) throw error;
 
   const { data } = supabase.storage.from('brew-photos').getPublicUrl(filename);

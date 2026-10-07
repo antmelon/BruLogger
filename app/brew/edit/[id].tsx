@@ -21,11 +21,11 @@ export default function EditBrewScreen() {
   }, [id]);
 
   async function handleSubmit(updated: BrewInsert) {
-    // Photo was removed: delete the old file from storage
-    if (brew?.photo_url && updated.photo_url === null) {
-      await deleteBrewPhoto(brew.photo_url);
-    }
     await updateBrew(id, updated);
+    // Photo was removed or replaced: clean up the old file only once the update has succeeded
+    if (brew?.photo_url && updated.photo_url !== brew.photo_url) {
+      await deleteBrewPhoto(brew.photo_url).catch((e) => console.warn('Failed to delete old photo:', e));
+    }
     router.replace(`/brew/${id}`);
   }
 

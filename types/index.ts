@@ -22,26 +22,27 @@ export interface FlavorProfile {
   body: number;        // 1–5
 }
 
+// Optional columns are null when unset. Send null (not undefined) to clear one on update.
 export interface Brew {
   id: string;
   user_id: string;
   created_at: string;
   coffee_name: string;
-  roaster?: string;
-  origin?: string;
-  roast_level?: RoastLevel;
-  varietal?: string;
-  processing_method?: string;
+  roaster?: string | null;
+  origin?: string | null;
+  roast_level?: RoastLevel | null;
+  varietal?: string | null;
+  processing_method?: string | null;
   brew_method: BrewMethod;
-  grind_size?: string;
-  water_temp_c?: number;
-  dose_g?: number;
-  yield_g?: number;
-  brew_time_s?: number;
-  flavor_notes?: string;
-  general_notes?: string;
-  rating?: number; // 1–5
-  flavor_profile?: FlavorProfile;
+  grind_size?: string | null;
+  water_temp_c?: number | null;
+  dose_g?: number | null;
+  yield_g?: number | null;
+  brew_time_s?: number | null;
+  flavor_notes?: string | null;
+  general_notes?: string | null;
+  rating?: number | null; // 1–5
+  flavor_profile?: FlavorProfile | null;
   photo_url?: string | null;
 }
 
