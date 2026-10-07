@@ -59,7 +59,7 @@ export default function LandingScreen() {
           onPress={() => router.push('/(auth)/login')}
           activeOpacity={0.85}
         >
-          <Text style={styles.ctaText}>Get Started — it's free</Text>
+          <Text style={styles.ctaText}>Get Started — it&apos;s free</Text>
         </TouchableOpacity>
       </View>
 
