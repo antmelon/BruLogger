@@ -17,5 +17,17 @@ The degree of roast of the beans used in a Brew: Light, Medium-Light, Medium, Me
 ### Rating
 An overall 1–5 star quality score for a Brew, supporting half-star increments. Optional — not every brew needs to be rated.
 
+### Flavor Notes
+Free-text tasting descriptors on a Brew (e.g. "blueberry, jasmine"). Distinct from the FlavorProfile: notes are what it tasted *like*, the profile is *how much* of each attribute. Optional, and included in list search.
+
+### General Notes
+Free-text notes about the Brew that aren't tasting descriptors (technique tweaks, what to try next). Optional.
+
+### Brew Parameters
+The measurable recipe of a Brew: grind size (free text), water temperature (°C), dose (g of coffee), yield (g of liquid out), and brew time (whole seconds). All optional.
+
+### Photo
+An optional single image attached to a Brew, stored in the `brew-photos` Supabase Storage bucket. Photos are publicly readable by URL, but only their owner can upload or delete them.
+
 ### BrewInsert
-The data shape used when creating or updating a Brew. Identical to Brew minus the server-generated fields (id, user_id, created_at).
+The data shape used when creating or updating a Brew. Identical to Brew minus the server-generated fields (id, user_id, created_at). Unset optional fields are `null`.
