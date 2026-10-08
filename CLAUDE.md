@@ -29,12 +29,12 @@ Env: `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (read in `li
 - `lib/analytics.ts`, `lib/form.ts`: pure helpers, unit-tested.
 - `lib/theme.ts`: color tokens. Use `colors.*` and don't hardcode hex values (a few older files still do).
 - `api/brews.ts`: Vercel Node function, the HTTP API used by the Hermes Telegram bot (`GET` recent brews, `POST` create with an optional base64 photo, `?dry_run=1`). Single-user: a bearer token (`BRULOGGER_API_TOKEN`) maps to `BRULOGGER_USER_ID`, and it writes with `SUPABASE_SERVICE_ROLE_KEY`, so the handler (not RLS) scopes rows to that user. Input validation lives in `lib/brewInput.ts`. The bot's skill is `integrations/hermes/log-brew/SKILL.md`; keep it in sync when fields change.
-- `types/index.ts`: hand-written `Brew` type. There are no generated Supabase types, so keep it in sync with the schema manually.
-- `supabase-schema.sql`: schema plus an append-only log of `alter` statements. It is run by hand in the Supabase SQL editor; nothing applies it automatically.
+- `types/database.ts`: generated from the live schema by `npm run db:types`; never edit it. `types/index.ts` derives `Brew`/`BrewInsert` from it and narrows the columns Postgres only knows as text/jsonb (`brew_method`, `roast_level`, `flavor_profile`). Both Supabase clients are typed with it.
+- `supabase/migrations/`: the schema, managed with the Supabase CLI (a devDependency, so `npx supabase ...`). The project is linked to production ("Coffee App", ref `gnrjhylsbfzqfeenoxwa`). New schema change: `npx supabase migration new <name>`, then `npx supabase db push` (reads `SUPABASE_DB_PASSWORD`; the user keeps it in the gitignored `.env.supabase`, load it with `set -a; . ./.env.supabase; set +a`), then `npm run db:types`. Always show the user the SQL and get their OK before pushing to production. `db pull`/`db diff` need Docker, which isn't usable on this machine; local `pg_dump`/`psql` against the session pooler (see `supabase/.temp/pooler-url`) work instead.
 
 ## Conventions and gotchas
 
-- **null vs undefined**: optional columns are typed `?: T | null`. To clear a column on update, send `null`; `undefined` keys are dropped from the JSON payload, so the old value silently stays.
+- **null vs undefined**: on a `Brew` (a row), optional columns are `T | null`; on a `BrewInsert` they are `?: T | null`. To clear a column on update, send `null`; `undefined` keys are dropped from the JSON payload, so the old value silently stays.
 - **Platform branches**: web and native differ for confirm dialogs (`window.confirm` vs `Alert`), the slider (`<input type="range">` vs community slider), photo upload (Blob vs RN FormData `{uri}`), and the OAuth redirect. When touching one of these, check both paths.
 - **Photos** live in the public `brew-photos` bucket under `<user_id>/<timestamp>.<ext>`; `brews.photo_url` stores the public URL. When a photo is replaced or a brew is deleted, delete the old object too (`deleteBrewPhoto`), and do it only after the DB write succeeds.
 - **Charts** (radar, rating trend, bars) are hand-rolled with `react-native-svg`. There is no chart library.

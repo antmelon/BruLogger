@@ -5,7 +5,7 @@ description: Add, rename, or remove a field on a Brew (e.g. "track the grinder u
 
 # Add a field to Brew
 
-A Brew field lives in several places with no codegen connecting them. Work through every step below; skip an optional step only deliberately.
+A Brew field lives in several places, and only the database types are generated. Work through every step below; skip an optional step only deliberately.
 
 ## 1. Decide the shape
 
@@ -13,22 +13,21 @@ A Brew field lives in several places with no codegen connecting them. Work throu
 - **Name**: snake_case, with a unit suffix for measurements (`_g`, `_c`, `_s`), matching `dose_g`, `water_temp_c`, `brew_time_s`.
 - **Required?** Almost always optional. A new required column breaks every existing row.
 
-## 2. Schema: `supabase-schema.sql`
+## 2. Schema: a new migration
 
-Append (never edit earlier statements; the file doubles as a migration log):
+`npx supabase migration new add_<name>` creates `supabase/migrations/<timestamp>_add_<name>.sql`. Never edit a migration that has already been pushed.
 
 ```sql
--- <Field> (run this if adding to an existing table)
-alter table public.brews add column if not exists <name> <type>;
+alter table public.brews add column <name> <type>;
 ```
 
-For a fixed set of choices, add a named check constraint in the same style as `brews_rating_check`.
+For a fixed set of choices, add a named check constraint in the same style as `brews_brew_method_check`.
 
-**Tell the user they must run this in the Supabase SQL editor.** Nothing applies it automatically, and the app will error on save until it's run.
+**Show the user the SQL and get their OK before applying it to production** with `npx supabase db push` (needs `SUPABASE_DB_PASSWORD`, kept in the gitignored `.env.supabase`). The app will error on save until it's applied.
 
-## 3. Type: `types/index.ts`
+## 3. Types
 
-Add to `Brew` as `<name>?: <TsType> | null;`. For a fixed set of choices, also add a union type and an exported `const` array (like `BrewMethod` / `BREW_METHODS`) so the form and filters can iterate it.
+Run `npm run db:types` after the push to regenerate `types/database.ts`; `Brew` and `BrewInsert` in `types/index.ts` derive from it. For a fixed set of choices or a `jsonb` column, the generated type is just `string` / `Json`: add a union type and an exported `const` array (like `BrewMethod` / `BREW_METHODS`) and narrow the column in `BrewColumns` in `types/index.ts`.
 
 ## 4. Form: `components/BrewForm.tsx`
 
@@ -58,8 +57,8 @@ Add an `InfoRow` in the right section, rendered only when set, with a unit suffi
 npm test && npm run typecheck && npm run lint
 ```
 
-Add or extend a test when the field has parsing or analytics logic. Finally, remind the user about the SQL from step 2.
+Add or extend a test when the field has parsing or analytics logic. Test fixtures typed as `Brew` need the new column too (as `null`).
 
 ## Removing or renaming a field
 
-Do the same steps in reverse. For the schema, append `alter table public.brews drop column if exists ...` or `rename column ... to ...`. Grep the whole repo for the old name, including `__tests__/` and `CONTEXT.md`. Point out to the user that a drop destroys existing data.
+Do the same steps in reverse. For the schema, write a migration with `alter table public.brews drop column ...` or `rename column ... to ...`. Grep the whole repo for the old name, including `__tests__/` and `CONTEXT.md`. Point out to the user that a drop destroys existing data.

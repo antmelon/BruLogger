@@ -1,3 +1,5 @@
+import type { Database as GeneratedDatabase } from './database';
+
 export type BrewMethod =
   | 'Pour Over'
   | 'French Press'
@@ -22,28 +24,30 @@ export interface FlavorProfile {
   body: number;        // 1–5
 }
 
-// Optional columns are null when unset. Send null (not undefined) to clear one on update.
-export interface Brew {
-  id: string;
-  user_id: string;
-  created_at: string;
-  coffee_name: string;
-  roaster?: string | null;
-  origin?: string | null;
-  roast_level?: RoastLevel | null;
-  varietal?: string | null;
-  processing_method?: string | null;
+// types/database.ts is generated from the live schema (`npm run db:types`). Postgres only knows
+// brew_method and roast_level as text with a check constraint and flavor_profile as jsonb, so
+// those three columns are narrowed here.
+type BrewColumns = {
   brew_method: BrewMethod;
-  grind_size?: string | null;
-  water_temp_c?: number | null;
-  dose_g?: number | null;
-  yield_g?: number | null;
-  brew_time_s?: number | null;
-  flavor_notes?: string | null;
-  general_notes?: string | null;
-  rating?: number | null; // 1–5
-  flavor_profile?: FlavorProfile | null;
-  photo_url?: string | null;
-}
+  roast_level: RoastLevel | null;
+  flavor_profile: FlavorProfile | null;
+};
+type Override<T, U> = Omit<T, keyof U> & U;
+type BrewsTable = GeneratedDatabase['public']['Tables']['brews'];
 
-export type BrewInsert = Omit<Brew, 'id' | 'user_id' | 'created_at'>;
+export type Database = Override<GeneratedDatabase, {
+  public: Override<GeneratedDatabase['public'], {
+    Tables: {
+      brews: Override<BrewsTable, {
+        Row: Override<BrewsTable['Row'], BrewColumns>;
+        Insert: Override<BrewsTable['Insert'], Pick<BrewColumns, 'brew_method'> & Partial<BrewColumns>>;
+        Update: Override<BrewsTable['Update'], Partial<BrewColumns>>;
+      }>;
+    };
+  }>;
+}>;
+
+// Optional columns are null when unset. Send null (not undefined) to clear one on update.
+export type Brew = Database['public']['Tables']['brews']['Row'];
+
+export type BrewInsert = Omit<Database['public']['Tables']['brews']['Insert'], 'id' | 'user_id' | 'created_at'>;

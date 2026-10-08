@@ -10,7 +10,8 @@
     "test": "jest",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,js,json}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:types": "supabase gen types typescript --linked --schema public > types/database.ts"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -43,6 +44,7 @@
     "jest-expo": "~55.0.22",
     "prettier": "^3.8.3",
     "sharp": "^0.34.5",
+    "supabase": "^2.120.0",
     "typescript": "~5.9.2"
   },
   "private": true

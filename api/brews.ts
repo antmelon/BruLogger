@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { parseBrewInput } from '../lib/brewInput';
+import type { Database } from '../types';
 
 // HTTP API for logging brews without the app (used by the Hermes Telegram bot).
 // Single-user: a bearer token maps to one Supabase user, and writes use the service
@@ -31,7 +32,7 @@ function digest(s: string) {
   return createHash('sha256').update(s).digest();
 }
 
-type Context = { db: SupabaseClient; userId: string };
+type Context = { db: SupabaseClient<Database>; userId: string };
 
 /** Returns the request context, or an error Response if config or auth is missing. */
 function authorize(request: Request): Context | Response {
@@ -49,7 +50,7 @@ function authorize(request: Request): Context | Response {
     return error(401, 'Missing or invalid bearer token.');
   }
 
-  const db = createClient(url, serviceKey, {
+  const db = createClient<Database>(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return { db, userId };
