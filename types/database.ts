@@ -26,6 +26,7 @@ export type Database = {
           general_notes: string | null
           grind_size: string | null
           id: string
+          idempotency_key: string | null
           origin: string | null
           photo_url: string | null
           processing_method: string | null
@@ -48,6 +49,7 @@ export type Database = {
           general_notes?: string | null
           grind_size?: string | null
           id?: string
+          idempotency_key?: string | null
           origin?: string | null
           photo_url?: string | null
           processing_method?: string | null
@@ -70,6 +72,7 @@ export type Database = {
           general_notes?: string | null
           grind_size?: string | null
           id?: string
+          idempotency_key?: string | null
           origin?: string | null
           photo_url?: string | null
           processing_method?: string | null

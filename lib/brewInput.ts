@@ -133,3 +133,25 @@ export function parseBrewInput(body: unknown): Result {
     },
   };
 }
+
+export type BrewPatch = Partial<BrewApiInput>;
+
+/**
+ * Validation for partial updates (PATCH): only the fields sent change, and null clears one.
+ * Validates with the same rules as a create by filling in placeholder required fields, then keeps
+ * only the keys the caller sent.
+ */
+export function parseBrewPatch(body: unknown): { ok: true; value: BrewPatch } | { ok: false; errors: string[] } {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return { ok: false, errors: ['Body must be a JSON object.'] };
+  }
+  const input = body as Record<string, unknown>;
+  const parsed = parseBrewInput({ coffee_name: 'placeholder', brew_method: 'Other', ...input });
+  const errors = parsed.ok ? [] : parsed.errors;
+  if ('created_at' in input && input.created_at == null) errors.push("created_at can't be cleared.");
+  if (!parsed.ok || errors.length) return { ok: false, errors };
+
+  const value: Record<string, unknown> = {};
+  for (const key of Object.keys(input)) value[key] = parsed.value[key as keyof BrewApiInput];
+  return { ok: true, value: value as BrewPatch };
+}

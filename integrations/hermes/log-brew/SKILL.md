@@ -1,7 +1,7 @@
 ---
 name: log-brew
-description: Log a coffee brew to BruLogger from a Telegram message, from text ("V60, Guji natural, 15g/250g, 3:10, blueberry, 4.5 stars"), a photo of the coffee bag, a photo of the brew, or any mix. Also answers questions about recent brews ("what did I brew yesterday?", "same as last time but finer").
-version: 1.0.0
+description: Log a coffee brew to BruLogger from a Telegram message, from text ("V60, Guji natural, 15g/250g, 3:10, blueberry, 4.5 stars"), a photo of the coffee bag, a photo of the brew, or any mix. Also fixes or deletes a logged brew ("actually it was 16g", "delete that last one") and answers questions about past brews ("what did I brew yesterday?", "same as last time but finer").
+version: 1.1.0
 author: Ant
 prerequisites:
   commands: [curl]
@@ -19,11 +19,14 @@ BruLogger is Ant's coffee journal. This skill turns a message into a brew entry 
 
 Base URL: `https://brulogger.vercel.app/api/brews`. Auth header: `Authorization: Bearer $BRULOGGER_API_TOKEN` (from the environment; never echo it).
 
-- `GET /api/brews?limit=10&since=<ISO 8601>`: recent brews, newest first (limit max 50). Returns `{ "brews": [...] }`.
+- `GET /api/brews?limit=10&since=<ISO 8601>&q=<text>`: brews, newest first (limit max 50). `q` matches coffee name, roaster or origin (case-insensitive substring). Returns `{ "brews": [...] }`.
+- `GET /api/brews/<id>`: one brew. Returns `{ "brew": {...} }`.
 - `POST /api/brews?dry_run=1`: validates and normalizes without saving. Returns `{ "brew": {...} }`.
-- `POST /api/brews`: saves. Returns `201 { "brew": {...} }`.
+- `POST /api/brews` with header `Idempotency-Key: <key>`: saves. Returns `201 { "brew": {...} }`. If a brew was already saved under that key, it returns `200 { "brew": {...}, "replayed": true }` and saves nothing.
+- `PATCH /api/brews/<id>`: changes only the fields sent; `null` clears a field. `"photo": {...}` replaces the photo, `"photo": null` removes it. `coffee_name`, `brew_method` and `created_at` can be changed but not cleared. Returns `{ "brew": {...} }`.
+- `DELETE /api/brews/<id>`: deletes the brew and its photo. Returns `{ "deleted": {...} }`.
 
-Errors return `{ "error": "...", "details": ["..."] }`. On `400`, fix the fields named in `details` (ask Ant if needed) and retry. Never invent values to get past validation.
+Errors return `{ "error": "...", "details": ["..."] }`. On `400`, fix the fields named in `details` (ask Ant if needed) and retry; nothing was written. `404` means no brew with that id. Never invent values to get past validation.
 
 ```sh
 curl -sS -X POST "https://brulogger.vercel.app/api/brews?dry_run=1" \
@@ -62,13 +65,19 @@ Unknown fields are rejected, so use these names exactly.
    - **Bag/label photo:** extract `coffee_name`, `roaster`, `origin`, `varietal`, `processing_method`, `roast_level` and roaster tasting notes. Roaster tasting notes are *not* `flavor_notes` (those are what Ant tasted); put them in `general_notes` as "Roaster notes: ...". Don't attach a label photo unless Ant asks.
    - **Brew/cup photo:** attach it as `photo`.
    - **Unclear which:** ask.
-2. **"Same as last time"** or a missing coffee name with context: `GET ?limit=5` and reuse the matching brew's coffee fields and recipe, applying the changes Ant mentions.
+2. **"Same as last time"** or a missing coffee name with context: `GET ?limit=5` (or `?q=<coffee or roaster>` when one is named) and reuse the matching brew's coffee fields and recipe, applying the changes Ant mentions.
 3. **Fill the gaps.** If `coffee_name` or `brew_method` is still unknown, ask one short question. Leave everything else out rather than guessing.
 4. **Dry run.** Build the JSON, `POST ?dry_run=1`, and fix any `400` details.
 5. **Confirm.** Reply with a one-to-two line summary of the normalized brew and ask to save, e.g.
    `Log this? Ethiopia Guji Hambela (Onyx) · Pour Over · 15g → 250g · 93°C · 3:10 · ★4.5 · blueberry, jasmine 📷`
    Apply corrections and re-confirm if Ant edits anything.
-6. **Save.** `POST` without `dry_run`. Reply "Logged ✓" plus anything notable. Don't post twice on a retry: if unsure whether a save landed, `GET ?limit=1` first.
+6. **Save.** `POST` without `dry_run`, with an `Idempotency-Key` header: a new random key per brew (e.g. from `uuidgen`), made once when you build the draft. If the request fails or times out, retry with the **same** key; the API won't save it twice. Reply "Logged ✓" plus anything notable.
+
+## Fixing or deleting a logged brew
+
+1. **Find it.** "That one" / "the last one" is `GET ?limit=1`; otherwise `GET ?limit=5` or `?q=<coffee>`. If more than one brew could match, ask which (name and date).
+2. **Confirm.** Fix: show the change, e.g. `Change Guji Hambela (Oct 8): dose 15g → 16g?`. Delete: `Delete Guji Hambela (Pour Over, Oct 8)?`. Wait for a yes.
+3. **Apply.** `PATCH /api/brews/<id>` with only the changed fields, or `DELETE /api/brews/<id>`. Reply "Updated ✓" / "Deleted ✓".
 
 ## Photos
 

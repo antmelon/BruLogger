@@ -22,4 +22,5 @@ export const BASE_BREW: Brew = {
   rating: null,
   flavor_profile: null,
   photo_url: null,
+  idempotency_key: null,
 };

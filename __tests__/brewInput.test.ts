@@ -1,4 +1,4 @@
-import { parseBrewInput } from '../lib/brewInput';
+import { parseBrewInput, parseBrewPatch } from '../lib/brewInput';
 
 function ok(body: unknown) {
   const r = parseBrewInput(body);
@@ -76,5 +76,23 @@ describe('parseBrewInput', () => {
   it('rejects non-object bodies', () => {
     expect(errors(null)).toMatch('JSON object');
     expect(errors([1])).toMatch('JSON object');
+  });
+});
+
+describe('parseBrewPatch', () => {
+  it('returns only the fields sent, normalized, with null clearing a field', () => {
+    expect(parseBrewPatch({ dose_g: '16', brew_method: 'pour over', roaster: null, origin: '  ' }))
+      .toEqual({ ok: true, value: { dose_g: 16, brew_method: 'Pour Over', roaster: null, origin: null } });
+  });
+
+  it('refuses to clear coffee_name, brew_method or created_at, and rejects unknown fields', () => {
+    const errorsOf = (body: unknown) => {
+      const r = parseBrewPatch(body);
+      return r.ok ? '' : r.errors.join(' | ');
+    };
+    expect(errorsOf({ coffee_name: null })).toMatch(/coffee_name is required/);
+    expect(errorsOf({ brew_method: null })).toMatch(/brew_method must be one of/);
+    expect(errorsOf({ created_at: null })).toMatch(/created_at can't be cleared/);
+    expect(errorsOf({ dose: 16 })).toMatch(/Unknown field\(s\): dose/);
   });
 });

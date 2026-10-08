@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { Brew, BrewInsert } from '../types';
+import { PHOTO_BUCKET, photoPathFromUrl } from './storage';
 
 export async function getBrews(): Promise<Brew[]> {
   const { data, error } = await supabase
@@ -81,18 +82,16 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
     } as unknown as Blob);
   }
 
-  const { error } = await supabase.storage.from('brew-photos').upload(filename, body);
+  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(filename, body);
   if (error) throw error;
 
-  const { data } = supabase.storage.from('brew-photos').getPublicUrl(filename);
+  const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(filename);
   return data.publicUrl;
 }
 
 export async function deleteBrewPhoto(publicUrl: string): Promise<void> {
-  const marker = '/brew-photos/';
-  const idx = publicUrl.indexOf(marker);
-  if (idx === -1) return;
-  const path = publicUrl.slice(idx + marker.length);
-  const { error } = await supabase.storage.from('brew-photos').remove([path]);
+  const path = photoPathFromUrl(publicUrl);
+  if (!path) return;
+  const { error } = await supabase.storage.from(PHOTO_BUCKET).remove([path]);
   if (error) throw error;
 }
