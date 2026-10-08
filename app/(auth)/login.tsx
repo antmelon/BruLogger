@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -8,47 +9,41 @@ import { CoffeeIcon } from '../../components/icons';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
+  const [error, setError] = useState<string | null>(null);
+
   async function signInWithGoogle() {
+    setError(null);
     const redirectTo = Platform.OS === 'web'
       ? window.location.origin + '/auth/callback'
       : Linking.createURL('auth/callback');
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
         skipBrowserRedirect: Platform.OS !== 'web',
       },
     });
-
-    if (error) {
-      console.error(error);
+    if (oauthError) {
+      setError(oauthError.message);
       return;
     }
 
-    if (Platform.OS !== 'web' && data.url) {
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    // Web leaves for Google here and comes back to /auth/callback. Native opens an in-app browser
+    // and gets the redirect URL back, carrying a one-time code (PKCE) or an error.
+    if (Platform.OS === 'web' || !data.url) return;
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type !== 'success') return; // cancelled or dismissed
 
-      if (result.type === 'success' && result.url) {
-        const hash = result.url.split('#')[1] ?? '';
-        const params = new URLSearchParams(hash);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        if (accessToken && refreshToken) {
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (sessionError) console.error('setSession error:', sessionError);
-        } else {
-          // PKCE flow fallback
-          const { error: sessionError } = await supabase.auth.exchangeCodeForSession(result.url);
-          if (sessionError) console.error('exchangeCodeForSession error:', sessionError);
-        }
-      } else {
-        console.warn('OAuth did not succeed:', result.type);
-      }
+    const { queryParams } = Linking.parse(result.url);
+    const code = typeof queryParams?.code === 'string' ? queryParams.code : null;
+    if (!code) {
+      const description = queryParams?.error_description ?? queryParams?.error;
+      setError(typeof description === 'string' ? description : 'Sign-in did not complete.');
+      return;
     }
+    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+    if (sessionError) setError(sessionError.message);
   }
 
   return (
@@ -64,6 +59,7 @@ export default function LoginScreen() {
         <TouchableOpacity style={styles.button} onPress={signInWithGoogle} activeOpacity={0.85}>
           <Text style={styles.buttonText}>Continue with Google</Text>
         </TouchableOpacity>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
     </View>
   );
@@ -98,4 +94,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: colors.surface, fontSize: 16, fontWeight: '600' },
+  error: { color: colors.error, fontSize: 14, marginTop: 16, textAlign: 'center' },
 });
