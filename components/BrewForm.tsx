@@ -6,12 +6,13 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../types';
 import { uploadBrewPhoto } from '../lib/brews';
-import { parseNumberField } from '../lib/form';
+import { toBrewInsert } from '../lib/form';
 import { colors, shadows } from '../lib/theme';
 import SliderInput from './SliderInput';
 import StarRating from './StarRating';
 import { ImageIcon } from './icons';
 
+// Starting point when the user chooses to score a brew
 const DEFAULT_PROFILE: FlavorProfile = { aromatics: 3, acidity: 3, sweetness: 3, aftertaste: 3, body: 3 };
 
 interface BrewFormProps {
@@ -22,7 +23,7 @@ interface BrewFormProps {
 
 function SelectPills<T extends string>({
   options, value, onChange, label,
-}: { options: T[]; value: T | undefined; onChange: (v: T) => void; label: string }) {
+}: { options: T[]; value: T | null; onChange: (v: T) => void; label: string }) {
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
@@ -46,10 +47,10 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [coffeeName, setCoffeeName] = useState(initial.coffee_name ?? '');
   const [roaster, setRoaster] = useState(initial.roaster ?? '');
   const [origin, setOrigin] = useState(initial.origin ?? '');
-  const [roastLevel, setRoastLevel] = useState<RoastLevel | undefined>(initial.roast_level ?? undefined);
+  const [roastLevel, setRoastLevel] = useState<RoastLevel | null>(initial.roast_level ?? null);
   const [varietal, setVarietal] = useState(initial.varietal ?? '');
   const [processingMethod, setProcessingMethod] = useState(initial.processing_method ?? '');
-  const [brewMethod, setBrewMethod] = useState<BrewMethod | undefined>(initial.brew_method);
+  const [brewMethod, setBrewMethod] = useState<BrewMethod | null>(initial.brew_method ?? null);
   const [grindSize, setGrindSize] = useState(initial.grind_size ?? '');
   const [waterTemp, setWaterTemp] = useState(initial.water_temp_c?.toString() ?? '');
   const [dose, setDose] = useState(initial.dose_g?.toString() ?? '');
@@ -58,14 +59,14 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [flavorNotes, setFlavorNotes] = useState(initial.flavor_notes ?? '');
   const [generalNotes, setGeneralNotes] = useState(initial.general_notes ?? '');
   const [rating, setRating] = useState(initial.rating ?? 0);
-  const [profile, setProfile] = useState<FlavorProfile>(initial.flavor_profile ?? DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<FlavorProfile | null>(initial.flavor_profile ?? null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(initial.photo_url ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function setProfileField(field: keyof FlavorProfile, val: number) {
-    setProfile((p) => ({ ...p, [field]: val }));
+    setProfile((p) => ({ ...(p ?? DEFAULT_PROFILE), [field]: val }));
   }
 
   async function launchCamera() {
@@ -121,54 +122,26 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   }
 
   async function handleSubmit() {
-    if (!coffeeName.trim()) { setError('Coffee name is required.'); return; }
-    if (!brewMethod) { setError('Please select a brew method.'); return; }
-
-    const numbers = {
-      water_temp_c: parseNumberField(waterTemp),
-      dose_g: parseNumberField(dose),
-      yield_g: parseNumberField(yieldG),
-      brew_time_s: parseNumberField(brewTime, { integer: true }),
-    };
-    if (Object.values(numbers).some((n) => n === undefined)) {
-      setError('Water temp, dose, yield, and brew time must be numbers.');
+    const result = toBrewInsert({
+      coffeeName, roaster, origin, roastLevel, varietal, processingMethod, brewMethod, grindSize,
+      waterTemp, dose, yieldG, brewTime, flavorNotes, generalNotes, rating, profile, photoUrl,
+    });
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
 
     setError(null);
     setSaving(true);
     try {
-      // null = no photo (either removed or never set); string = photo URL to persist
-      let resolvedPhotoUrl: string | null = null;
+      let photo_url = result.value.photo_url ?? null; // kept, removed (null) or never set
       if (photoUri) {
-        resolvedPhotoUrl = await uploadBrewPhoto(photoUri);
+        photo_url = await uploadBrewPhoto(photoUri);
         // Keep the uploaded URL so a retry after a failed save doesn't upload again
         setPhotoUri(null);
-        setPhotoUrl(resolvedPhotoUrl);
-      } else if (photoUrl) {
-        resolvedPhotoUrl = photoUrl;
+        setPhotoUrl(photo_url);
       }
-
-      // Blank fields are sent as null (not undefined) so clearing a field on edit persists
-      await onSubmit({
-        coffee_name: coffeeName.trim(),
-        roaster: roaster.trim() || null,
-        origin: origin.trim() || null,
-        roast_level: roastLevel ?? null,
-        varietal: varietal.trim() || null,
-        processing_method: processingMethod.trim() || null,
-        brew_method: brewMethod,
-        grind_size: grindSize.trim() || null,
-        water_temp_c: numbers.water_temp_c ?? null,
-        dose_g: numbers.dose_g ?? null,
-        yield_g: numbers.yield_g ?? null,
-        brew_time_s: numbers.brew_time_s ?? null,
-        flavor_notes: flavorNotes.trim() || null,
-        general_notes: generalNotes.trim() || null,
-        rating: rating || null,
-        flavor_profile: profile,
-        photo_url: resolvedPhotoUrl,
-      });
+      await onSubmit({ ...result.value, photo_url });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
@@ -253,11 +226,22 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
       {/* Flavor profile */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Flavor Profile</Text>
-        <SliderInput label="Aromatics" value={profile.aromatics} onChange={(v) => setProfileField('aromatics', v)} />
-        <SliderInput label="Acidity" value={profile.acidity} onChange={(v) => setProfileField('acidity', v)} />
-        <SliderInput label="Sweetness" value={profile.sweetness} onChange={(v) => setProfileField('sweetness', v)} />
-        <SliderInput label="Aftertaste" value={profile.aftertaste} onChange={(v) => setProfileField('aftertaste', v)} />
-        <SliderInput label="Body" value={profile.body} onChange={(v) => setProfileField('body', v)} />
+        {profile ? (
+          <>
+            <SliderInput label="Aromatics" value={profile.aromatics} onChange={(v) => setProfileField('aromatics', v)} />
+            <SliderInput label="Acidity" value={profile.acidity} onChange={(v) => setProfileField('acidity', v)} />
+            <SliderInput label="Sweetness" value={profile.sweetness} onChange={(v) => setProfileField('sweetness', v)} />
+            <SliderInput label="Aftertaste" value={profile.aftertaste} onChange={(v) => setProfileField('aftertaste', v)} />
+            <SliderInput label="Body" value={profile.body} onChange={(v) => setProfileField('body', v)} />
+            <TouchableOpacity onPress={() => setProfile(null)} style={styles.profileRemove} activeOpacity={0.7}>
+              <Text style={styles.profileRemoveText}>Remove flavor profile</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity onPress={() => setProfile(DEFAULT_PROFILE)} style={styles.photoPlaceholder} activeOpacity={0.7}>
+            <Text style={styles.photoPlaceholderText}>Score the flavor profile</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Notes */}
@@ -395,6 +379,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
   },
   photoPlaceholderText: { fontSize: 14, color: colors.textLight },
+  profileRemove: { alignSelf: 'flex-end', paddingTop: 4 },
+  profileRemoveText: { fontSize: 13, color: colors.error, fontWeight: '600' },
   photoPreview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: colors.background },
   photoActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
   photoActionBtn: {

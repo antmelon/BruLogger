@@ -131,6 +131,7 @@ export default function AnalyticsScreen() {
   const methodCounts = useMemo(() => countBy(brews.map((b) => b.brew_method)), [brews]);
   const roastCounts = useMemo(() => countBy(brews.filter((b) => b.roast_level).map((b) => b.roast_level!)), [brews]);
   const avgProfile = useMemo(() => avgFlavorProfile(brews), [brews]);
+  const scoredCount = useMemo(() => brews.filter((b) => b.flavor_profile).length, [brews]);
   const { avgRating, topMethod } = useMemo(() => brewStats(brews), [brews]);
 
   if (isPending) {
@@ -201,7 +202,9 @@ export default function AnalyticsScreen() {
       {avgProfile && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Average Flavor Profile</Text>
-          <Text style={styles.sectionSubtitle}>Averaged across all logged brews</Text>
+          <Text style={styles.sectionSubtitle}>
+            Averaged across {scoredCount} scored {scoredCount === 1 ? 'brew' : 'brews'}
+          </Text>
           <View style={styles.radarWrapper}>
             <RadarChart profile={avgProfile} size={Math.min(chartWidth, 280)} />
           </View>
