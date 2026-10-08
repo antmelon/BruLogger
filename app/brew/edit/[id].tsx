@@ -1,35 +1,22 @@
-import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import BrewForm from '../../../components/BrewForm';
-import { getBrew, updateBrew, deleteBrewPhoto } from '../../../lib/brews';
+import { useBrew, useUpdateBrew } from '../../../lib/brewQueries';
 import { colors } from '../../../lib/theme';
-import { Brew, BrewInsert } from '../../../types';
+import { BrewInsert } from '../../../types';
 
 export default function EditBrewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [brew, setBrew] = useState<Brew | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getBrew(id)
-      .then(setBrew)
-      .catch(() => setLoadError('Failed to load brew.'))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: brew, isPending, isError } = useBrew(id);
+  const updateMutation = useUpdateBrew();
 
   async function handleSubmit(updated: BrewInsert) {
-    await updateBrew(id, updated);
-    // Photo was removed or replaced: clean up the old file only once the update has succeeded
-    if (brew?.photo_url && updated.photo_url !== brew.photo_url) {
-      await deleteBrewPhoto(brew.photo_url).catch((e) => console.warn('Failed to delete old photo:', e));
-    }
+    await updateMutation.mutateAsync({ id, brew: updated, previousPhotoUrl: brew?.photo_url ?? null });
     router.replace(`/brew/${id}`);
   }
 
-  if (loading) {
+  if (isPending) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -37,10 +24,10 @@ export default function EditBrewScreen() {
     );
   }
 
-  if (loadError || !brew) {
+  if (!brew) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>{loadError ?? 'Brew not found.'}</Text>
+        <Text style={styles.errorText}>{isError ? 'Failed to load brew.' : 'Brew not found.'}</Text>
       </View>
     );
   }

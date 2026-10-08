@@ -4,8 +4,7 @@ import {
   TouchableOpacity, Alert, Platform, Image, Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Brew } from '../../types';
-import { getBrew, deleteBrew, deleteBrewPhoto } from '../../lib/brews';
+import { useBrew, useDeleteBrew } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
@@ -22,17 +21,9 @@ function InfoRow({ label, value }: { label: string; value: string | number }) {
 export default function BrewDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [brew, setBrew] = useState<Brew | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: brew, isPending, isError } = useBrew(id);
+  const deleteMutation = useDeleteBrew();
   const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
-
-  useEffect(() => {
-    getBrew(id)
-      .then(setBrew)
-      .catch(() => setLoadError('Failed to load brew.'))
-      .finally(() => setLoading(false));
-  }, [id]);
 
   useEffect(() => {
     if (brew?.photo_url) {
@@ -51,16 +42,14 @@ export default function BrewDetailScreen() {
   }, [brew?.photo_url]);
 
   async function performDelete() {
+    if (!brew) return;
     try {
-      await deleteBrew(id);
+      await deleteMutation.mutateAsync(brew);
     } catch {
       const message = 'Could not delete this brew. Please try again.';
       if (Platform.OS === 'web') window.alert(message);
       else Alert.alert('Delete failed', message);
       return;
-    }
-    if (brew?.photo_url) {
-      await deleteBrewPhoto(brew.photo_url).catch((e) => console.warn('Failed to delete photo:', e));
     }
     router.replace('/(tabs)');
   }
@@ -76,7 +65,7 @@ export default function BrewDetailScreen() {
     }
   }
 
-  if (loading) {
+  if (isPending) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -84,10 +73,10 @@ export default function BrewDetailScreen() {
     );
   }
 
-  if (loadError || !brew) {
+  if (!brew) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>{loadError ?? 'Brew not found.'}</Text>
+        <Text style={styles.errorText}>{isError ? 'Failed to load brew.' : 'Brew not found.'}</Text>
       </View>
     );
   }

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { Session } from '@supabase/supabase-js';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { queryClient, useAppStateFocus } from '../lib/brewQueries';
 import { colors } from '../lib/theme';
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const router = useRouter();
   const segments = useSegments();
+  useAppStateFocus();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -16,6 +19,7 @@ export default function RootLayout() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (!session) queryClient.clear(); // don't show one account's brews to the next
     });
 
     return () => subscription.unsubscribe();
@@ -38,14 +42,16 @@ export default function RootLayout() {
   if (session === undefined) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="brew/[id]" options={{ headerShown: true, title: 'Brew Details', headerTintColor: colors.primary, headerBackButtonDisplayMode: 'minimal' }} />
-      <Stack.Screen name="brew/new" options={{ headerShown: true, title: 'Log a Brew', headerTintColor: colors.primary, headerBackButtonDisplayMode: 'minimal' }} />
-      <Stack.Screen name="brew/edit/[id]" options={{ headerShown: true, title: 'Edit Brew', headerTintColor: colors.primary, headerBackButtonDisplayMode: 'minimal' }} />
-      <Stack.Screen name="auth/callback" />
-    </Stack>
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="brew/[id]" options={{ headerShown: true, title: 'Brew Details', headerTintColor: colors.primary, headerBackButtonDisplayMode: 'minimal' }} />
+        <Stack.Screen name="brew/new" options={{ headerShown: true, title: 'Log a Brew', headerTintColor: colors.primary, headerBackButtonDisplayMode: 'minimal' }} />
+        <Stack.Screen name="brew/edit/[id]" options={{ headerShown: true, title: 'Edit Brew', headerTintColor: colors.primary, headerBackButtonDisplayMode: 'minimal' }} />
+        <Stack.Screen name="auth/callback" />
+      </Stack>
+    </QueryClientProvider>
   );
 }

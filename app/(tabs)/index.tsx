@@ -1,15 +1,17 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, TextInput, ScrollView,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Brew, BREW_METHODS, ROAST_LEVELS } from '../../types';
 import { colors, shadows } from '../../lib/theme';
-import { getBrews } from '../../lib/brews';
+import { useBrews } from '../../lib/brewQueries';
 import { activeFilterCount, BrewFilters, DEFAULT_FILTERS, filterBrews } from '../../lib/brewList';
 import StarRating from '../../components/StarRating';
 import { CoffeeIcon, SearchIcon } from '../../components/icons';
+
+const NO_BREWS: Brew[] = [];
 
 function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
   const date = new Date(brew.created_at).toLocaleDateString('en-US', {
@@ -66,10 +68,11 @@ function FilterPill({
 
 export default function BrewsScreen() {
   const router = useRouter();
-  const [brews, setBrews] = useState<Brew[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isPending, isError, refetch } = useBrews();
+  const brews = data ?? NO_BREWS;
+  const loadError = isError && !data ? 'Failed to load brews. Pull down to retry.' : null;
+  const refreshFailed = isError && !!data; // showing cached brews, but the latest fetch failed
   const [refreshing, setRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<BrewFilters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -79,20 +82,11 @@ export default function BrewsScreen() {
     setFilters((f) => ({ ...f, ...patch }));
   }
 
-  async function loadBrews() {
-    try {
-      const data = await getBrews();
-      setBrews(data);
-      setLoadError(null);
-    } catch {
-      setLoadError('Failed to load brews. Pull down to retry.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  async function refresh() {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
   }
-
-  useFocusEffect(useCallback(() => { loadBrews(); }, []));
 
   const filtered = useMemo(() => filterBrews(brews, filters), [brews, filters]);
   const filterCount = activeFilterCount(filters);
@@ -101,7 +95,7 @@ export default function BrewsScreen() {
     setFilters((f) => ({ ...DEFAULT_FILTERS, query: f.query }));
   }
 
-  if (loading) {
+  if (isPending) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -139,6 +133,12 @@ export default function BrewsScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {refreshFailed && (
+        <TouchableOpacity style={styles.refreshError} onPress={refresh} activeOpacity={0.7}>
+          <Text style={styles.refreshErrorText}>Couldn&apos;t refresh your brews. Tap to retry.</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Filter panel */}
       {showFilters && (
@@ -214,7 +214,7 @@ export default function BrewsScreen() {
         removeClippedSubviews
         initialNumToRender={10}
         maxToRenderPerBatch={20}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadBrews(); }} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
@@ -284,6 +284,18 @@ const styles = StyleSheet.create({
   filterToggleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   filterToggleText: { fontSize: 14, fontWeight: '600', color: colors.textMedium },
   filterToggleTextActive: { color: colors.surface },
+
+  refreshError: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.error,
+    backgroundColor: colors.surface,
+  },
+  refreshErrorText: { fontSize: 13, color: colors.error, textAlign: 'center' },
 
   filterPanel: {
     backgroundColor: colors.surface,

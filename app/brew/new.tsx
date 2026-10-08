@@ -1,13 +1,14 @@
 import { useRouter } from 'expo-router';
 import BrewForm from '../../components/BrewForm';
-import { createBrew } from '../../lib/brews';
+import { useCreateBrew } from '../../lib/brewQueries';
 import { BrewInsert } from '../../types';
 
 export default function NewBrewScreen() {
   const router = useRouter();
+  const createMutation = useCreateBrew();
 
   async function handleSubmit(brew: BrewInsert) {
-    const created = await createBrew(brew);
+    const created = await createMutation.mutateAsync(brew);
     router.replace(`/brew/${created.id}`);
   }
 

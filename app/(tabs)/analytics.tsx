@@ -1,10 +1,9 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions, Platform,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import Svg, { Path, Circle, Line as SvgLine, Text as SvgText } from 'react-native-svg';
-import { getBrews } from '../../lib/brews';
+import { useBrews } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
 import { avgFlavorProfile, brewStats, countBy } from '../../lib/analytics';
 import { Brew, FlavorProfile } from '../../types';
@@ -122,26 +121,19 @@ const trendStyles = StyleSheet.create({
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
+const NO_BREWS: Brew[] = [];
+
 export default function AnalyticsScreen() {
-  const [brews, setBrews] = useState<Brew[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: brews = NO_BREWS, isPending, isError } = useBrews();
   const { width } = useWindowDimensions();
   const chartWidth = width - 32 - 40; // screen - horizontal padding - section padding
-
-  useFocusEffect(useCallback(() => {
-    getBrews()
-      .then((data) => { setBrews(data); setLoadError(null); })
-      .catch(() => setLoadError('Failed to load analytics.'))
-      .finally(() => setLoading(false));
-  }, []));
 
   const methodCounts = useMemo(() => countBy(brews.map((b) => b.brew_method)), [brews]);
   const roastCounts = useMemo(() => countBy(brews.filter((b) => b.roast_level).map((b) => b.roast_level!)), [brews]);
   const avgProfile = useMemo(() => avgFlavorProfile(brews), [brews]);
   const { avgRating, topMethod } = useMemo(() => brewStats(brews), [brews]);
 
-  if (loading) {
+  if (isPending) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -149,11 +141,11 @@ export default function AnalyticsScreen() {
     );
   }
 
-  if (loadError) {
+  if (isError && brews === NO_BREWS) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyTitle}>Something went wrong</Text>
-        <Text style={styles.emptyText}>{loadError}</Text>
+        <Text style={styles.emptyText}>Failed to load analytics.</Text>
       </View>
     );
   }

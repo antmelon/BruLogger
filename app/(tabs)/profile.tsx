@@ -1,10 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { User } from '@supabase/supabase-js';
-import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { getBrews } from '../../lib/brews';
-import { brewStats, BrewStats } from '../../lib/analytics';
+import { brewStats } from '../../lib/analytics';
+import { useBrews } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
 
 function StatTile({ label, value }: { label: string; value: string }) {
@@ -18,21 +17,14 @@ function StatTile({ label, value }: { label: string; value: string }) {
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<BrewStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: brews, isPending } = useBrews();
+  const stats = useMemo(() => (brews ? brewStats(brews) : null), [brews]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
 
-  useFocusEffect(useCallback(() => {
-    getBrews()
-      .then((brews) => setStats(brewStats(brews)))
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
-  }, []));
-
-  if (loading) {
+  if (isPending) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
