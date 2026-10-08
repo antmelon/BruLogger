@@ -4,32 +4,8 @@ import { User } from '@supabase/supabase-js';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { getBrews } from '../../lib/brews';
-import { countBy } from '../../lib/analytics';
+import { brewStats, BrewStats } from '../../lib/analytics';
 import { colors } from '../../lib/theme';
-import { Brew } from '../../types';
-
-interface Stats {
-  total: number;
-  avgRating: number | null;
-  topMethod: string | null;
-  topOrigin: string | null;
-}
-
-function computeStats(brews: Brew[]): Stats {
-  if (brews.length === 0) return { total: 0, avgRating: null, topMethod: null, topOrigin: null };
-
-  const rated = brews.filter((b): b is Brew & { rating: number } => !!b.rating);
-  const avgRating = rated.length
-    ? rated.reduce((sum, b) => sum + b.rating, 0) / rated.length
-    : null;
-
-  const topMethod = countBy(brews.map((b) => b.brew_method))[0]?.label ?? null;
-
-  const origins = brews.filter((b): b is Brew & { origin: string } => !!b.origin).map((b) => b.origin);
-  const topOrigin = countBy(origins)[0]?.label ?? null;
-
-  return { total: brews.length, avgRating, topMethod, topOrigin };
-}
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
@@ -42,7 +18,7 @@ function StatTile({ label, value }: { label: string; value: string }) {
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<BrewStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,7 +27,7 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => {
     getBrews()
-      .then((brews) => setStats(computeStats(brews)))
+      .then((brews) => setStats(brewStats(brews)))
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
   }, []));

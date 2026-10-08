@@ -4,9 +4,10 @@ import {
   ActivityIndicator, RefreshControl, TextInput, ScrollView,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Brew, BrewMethod, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../../types';
+import { Brew, BREW_METHODS, ROAST_LEVELS } from '../../types';
 import { colors } from '../../lib/theme';
 import { getBrews } from '../../lib/brews';
+import { activeFilterCount, BrewFilters, DEFAULT_FILTERS, filterBrews } from '../../lib/brewList';
 import StarRating from '../../components/StarRating';
 import { CoffeeIcon, SearchIcon } from '../../components/icons';
 
@@ -70,12 +71,13 @@ export default function BrewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [query, setQuery] = useState('');
-  const [methodFilter, setMethodFilter] = useState<BrewMethod | null>(null);
-  const [roastFilter, setRoastFilter] = useState<RoastLevel | null>(null);
-  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'top_rated' | 'name'>('newest');
+  const [filters, setFilters] = useState<BrewFilters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const { query, method, roast, minRating, sortBy } = filters;
+
+  function updateFilters(patch: Partial<BrewFilters>) {
+    setFilters((f) => ({ ...f, ...patch }));
+  }
 
   async function loadBrews() {
     try {
@@ -92,37 +94,11 @@ export default function BrewsScreen() {
 
   useFocusEffect(useCallback(() => { loadBrews(); }, []));
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const result = brews.filter((b) => {
-      if (q) {
-        const searchable = [b.coffee_name, b.roaster, b.origin, b.flavor_notes]
-          .filter(Boolean).join(' ').toLowerCase();
-        if (!searchable.includes(q)) return false;
-      }
-      if (methodFilter && b.brew_method !== methodFilter) return false;
-      if (roastFilter && b.roast_level !== roastFilter) return false;
-      if (ratingFilter && (b.rating ?? 0) < ratingFilter) return false;
-      return true;
-    });
-
-    return result.sort((a, b) => {
-      switch (sortBy) {
-        case 'oldest': return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'top_rated': return (b.rating ?? 0) - (a.rating ?? 0);
-        case 'name': return a.coffee_name.localeCompare(b.coffee_name);
-        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-    });
-  }, [brews, query, methodFilter, roastFilter, ratingFilter, sortBy]);
-
-  const hasActiveFilters = Boolean(methodFilter || roastFilter || ratingFilter) || sortBy !== 'newest';
+  const filtered = useMemo(() => filterBrews(brews, filters), [brews, filters]);
+  const filterCount = activeFilterCount(filters);
 
   function clearFilters() {
-    setMethodFilter(null);
-    setRoastFilter(null);
-    setRatingFilter(null);
-    setSortBy('newest');
+    setFilters((f) => ({ ...DEFAULT_FILTERS, query: f.query }));
   }
 
   if (loading) {
@@ -142,24 +118,24 @@ export default function BrewsScreen() {
           <TextInput
             style={styles.searchInput}
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(text) => updateFilters({ query: text })}
             placeholder="Search brews..."
             placeholderTextColor={colors.textLight}
             clearButtonMode="while-editing"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={() => updateFilters({ query: '' })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={styles.clearText}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
         <TouchableOpacity
-          style={[styles.filterToggle, hasActiveFilters && styles.filterToggleActive]}
+          style={[styles.filterToggle, filterCount > 0 && styles.filterToggleActive]}
           onPress={() => setShowFilters((v) => !v)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.filterToggleText, hasActiveFilters && styles.filterToggleTextActive]}>
-            {hasActiveFilters ? `Filters (${[methodFilter, roastFilter, ratingFilter].filter(Boolean).length})` : 'Filter'}
+          <Text style={[styles.filterToggleText, filterCount > 0 && styles.filterToggleTextActive]}>
+            {filterCount > 0 ? `Filters (${filterCount})` : 'Filter'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -175,7 +151,7 @@ export default function BrewsScreen() {
                   key={val}
                   label={label}
                   active={sortBy === val}
-                  onPress={() => setSortBy(val)}
+                  onPress={() => updateFilters({ sortBy: val })}
                 />
               ))}
             </View>
@@ -188,8 +164,8 @@ export default function BrewsScreen() {
                 <FilterPill
                   key={m}
                   label={m}
-                  active={methodFilter === m}
-                  onPress={() => setMethodFilter(methodFilter === m ? null : m)}
+                  active={method === m}
+                  onPress={() => updateFilters({ method: method === m ? null : m })}
                 />
               ))}
             </ScrollView>
@@ -202,8 +178,8 @@ export default function BrewsScreen() {
                 <FilterPill
                   key={r}
                   label={r}
-                  active={roastFilter === r}
-                  onPress={() => setRoastFilter(roastFilter === r ? null : r)}
+                  active={roast === r}
+                  onPress={() => updateFilters({ roast: roast === r ? null : r })}
                 />
               ))}
             </ScrollView>
@@ -216,14 +192,14 @@ export default function BrewsScreen() {
                 <FilterPill
                   key={n}
                   label={'★'.repeat(n)}
-                  active={ratingFilter === n}
-                  onPress={() => setRatingFilter(ratingFilter === n ? null : n)}
+                  active={minRating === n}
+                  onPress={() => updateFilters({ minRating: minRating === n ? null : n })}
                 />
               ))}
             </View>
           </View>
 
-          {hasActiveFilters && (
+          {filterCount > 0 && (
             <TouchableOpacity onPress={clearFilters} style={styles.clearFilters}>
               <Text style={styles.clearFiltersText}>Clear all filters</Text>
             </TouchableOpacity>

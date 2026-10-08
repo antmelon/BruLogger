@@ -1,28 +1,6 @@
-import { avgFlavorProfile, countBy } from '../lib/analytics';
+import { avgFlavorProfile, brewStats, countBy } from '../lib/analytics';
 import { Brew, FlavorProfile } from '../types';
-
-const BASE_BREW: Brew = {
-  id: '1',
-  user_id: 'u1',
-  created_at: '2024-01-01T00:00:00Z',
-  coffee_name: 'Test Coffee',
-  brew_method: 'Pour Over',
-  roaster: null,
-  origin: null,
-  roast_level: null,
-  varietal: null,
-  processing_method: null,
-  grind_size: null,
-  water_temp_c: null,
-  dose_g: null,
-  yield_g: null,
-  brew_time_s: null,
-  flavor_notes: null,
-  general_notes: null,
-  rating: null,
-  flavor_profile: null,
-  photo_url: null,
-};
+import { BASE_BREW } from './fixtures';
 
 describe('countBy', () => {
   it('counts items and sorts by frequency descending', () => {
@@ -93,5 +71,31 @@ describe('avgFlavorProfile', () => {
     const result = avgFlavorProfile(brews);
     expect(result?.aromatics).toBeCloseTo(4);
     expect(result?.body).toBeCloseTo(4);
+  });
+});
+
+describe('brewStats', () => {
+  it('averages the rating over rated brews only', () => {
+    const brews: Brew[] = [
+      { ...BASE_BREW, id: '1', rating: 4 },
+      { ...BASE_BREW, id: '2', rating: 3.5 },
+      { ...BASE_BREW, id: '3', rating: null },
+    ];
+    const stats = brewStats(brews);
+    expect(stats.total).toBe(3);
+    expect(stats.avgRating).toBe(3.75);
+  });
+
+  it('picks the most-logged method and origin, ignoring brews without an origin', () => {
+    const brews: Brew[] = [
+      { ...BASE_BREW, id: '1', brew_method: 'Espresso', origin: 'Kenya' },
+      { ...BASE_BREW, id: '2', brew_method: 'Pour Over', origin: null },
+      { ...BASE_BREW, id: '3', brew_method: 'Pour Over', origin: null },
+      { ...BASE_BREW, id: '4', brew_method: 'Espresso', origin: 'Ethiopia' },
+      { ...BASE_BREW, id: '5', brew_method: 'Pour Over', origin: 'Ethiopia' },
+    ];
+    const stats = brewStats(brews);
+    expect(stats.topMethod).toBe('Pour Over');
+    expect(stats.topOrigin).toBe('Ethiopia');
   });
 });

@@ -6,7 +6,7 @@ import { useFocusEffect } from 'expo-router';
 import Svg, { Path, Circle, Line as SvgLine, Text as SvgText } from 'react-native-svg';
 import { getBrews } from '../../lib/brews';
 import { colors } from '../../lib/theme';
-import { avgFlavorProfile, countBy } from '../../lib/analytics';
+import { avgFlavorProfile, brewStats, countBy } from '../../lib/analytics';
 import { Brew, FlavorProfile } from '../../types';
 import RadarChart from '../../components/RadarChart';
 
@@ -139,10 +139,7 @@ export default function AnalyticsScreen() {
   const methodCounts = useMemo(() => countBy(brews.map((b) => b.brew_method)), [brews]);
   const roastCounts = useMemo(() => countBy(brews.filter((b) => b.roast_level).map((b) => b.roast_level!)), [brews]);
   const avgProfile = useMemo(() => avgFlavorProfile(brews), [brews]);
-  const avgRating = useMemo(() => {
-    const rated = brews.filter((b): b is Brew & { rating: number } => !!b.rating);
-    return rated.length ? rated.reduce((s, b) => s + b.rating, 0) / rated.length : null;
-  }, [brews]);
+  const { avgRating, topMethod } = useMemo(() => brewStats(brews), [brews]);
 
   if (loading) {
     return (
@@ -183,7 +180,7 @@ export default function AnalyticsScreen() {
           <Text style={styles.tileLabel}>Avg Rating</Text>
         </View>
         <View style={styles.tile}>
-          <Text style={styles.tileValueSmall} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{methodCounts[0]?.label ?? '—'}</Text>
+          <Text style={styles.tileValueSmall} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{topMethod ?? '—'}</Text>
           <Text style={styles.tileLabel}>Fav Method</Text>
         </View>
       </View>
