@@ -1,6 +1,6 @@
 # BruLogger
 
-Personal coffee brew journal. Expo (SDK 55) + Expo Router + React Native Web, backed by Supabase (Postgres + Auth + Storage). Ships to iOS/Android and to the web at brulogger.vercel.app.
+Personal coffee brew journal. Expo (SDK 57, React Native 0.86) + Expo Router + React Native Web, backed by Supabase (Postgres + Auth + Storage). Ships to iOS/Android and to the web at brulogger.vercel.app.
 
 Domain glossary: @CONTEXT.md
 
@@ -38,6 +38,8 @@ Env: `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (read in `li
 - **null vs undefined**: on a `Brew` (a row), optional columns are `T | null`; on a `BrewInsert` they are `?: T | null`. To clear a column on update, send `null`; `undefined` keys are dropped from the JSON payload, so the old value silently stays.
 - **Platform branches**: `Alert.alert` is a silent no-op in react-native-web, so anything that asks the user something needs a web path. Web and native differ for confirm dialogs (`window.confirm` vs `Alert`), the photo source picker (web opens the file picker directly), the slider (`<input type="range">` vs community slider), photo upload (Blob vs RN FormData `{uri}`), and the OAuth redirect. When touching one of these, check both paths.
 - **Photos** live in the public `brew-photos` bucket under `<user_id>/<timestamp>.<ext>`; `brews.photo_url` stores the public URL. The form shrinks a photo when it's picked (`prepareForUpload` in `lib/photos.ts`: 1600px longest edge, JPEG 0.8). Bot photos arrive already compressed by Telegram. When a photo is replaced or a brew is deleted, delete the old object too (`deleteBrewPhoto`), and do it only after the DB write succeeds (the mutations in `lib/brewQueries.ts` do this).
+- **Dependencies**: keep Expo packages at the SDK's versions with `npx expo install --fix` (check with `npx expo install --check` and `npx expo-doctor`). `react-native-reanimated`, `react-native-worklets`, `react-native-gesture-handler` and `@react-native-masked-view/masked-view` aren't used by the app: Expo Router's drawer requires them as peers, and autolinking compiles them into native builds, so they are pinned to the SDK's versions instead of whatever npm resolves. On an SDK upgrade, a `^`/`~` jump across majors tends to hit npm peer conflicts from stale lockfile entries; write the expected versions into package.json and reinstall with a fresh lockfile.
+- **URL scheme** is `brulogger` (lowercase is required). Native OAuth redirects to `brulogger://auth/callback`, so each Supabase project's redirect URLs need `brulogger://**`; Expo Go uses `exp://**` instead.
 - **Charts** (radar, rating trend, bars) are hand-rolled with `react-native-svg`. There is no chart library.
 - Styles: `StyleSheet.create` at the bottom of each file; prettier config is single quotes, 100 cols, trailing commas.
 - Tests mock the Supabase query-builder chain (see `__tests__/brews.test.ts`); extend those mocks rather than hitting a real backend. Build `Brew` fixtures from `BASE_BREW` in `__tests__/fixtures.ts`.

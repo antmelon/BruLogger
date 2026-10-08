@@ -1,9 +1,10 @@
+import { ColorValue } from 'react-native';
 import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
 import { colors } from '../lib/theme';
 
 interface IconProps {
   size?: number;
-  color?: string;
+  color?: ColorValue;
   strokeWidth?: number;
 }
 

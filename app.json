@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#4A3728"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.antmelon.brulogger"
@@ -28,10 +23,19 @@
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "BruLogger",
+    "scheme": "brulogger",
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#4A3728",
+          "imageWidth": 200
+        }
+      ]
     ]
   }
 }

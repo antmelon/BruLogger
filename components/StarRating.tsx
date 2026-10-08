@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useId } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import Svg, { Path, Defs, ClipPath, Rect } from 'react-native-svg';
 import { colors } from '../lib/theme';
@@ -34,7 +34,8 @@ function StarIcon({ fill, size, clipId }: { fill: 'full' | 'half' | 'empty'; siz
 }
 
 export default function StarRating({ value, onChange, size = 24, readonly = false }: StarRatingProps) {
-  const uid = useRef(`sr-${Math.random().toString(36).slice(2)}`).current;
+  // Unique per instance, for the half-star clip path; only characters safe inside url(#...)
+  const uid = `sr${useId().replace(/[^A-Za-z0-9_-]/g, '')}`;
 
   return (
     <View style={styles.row}>
