@@ -6,7 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Brew } from '../../types';
 import { getBrew, deleteBrew, deleteBrewPhoto } from '../../lib/brews';
-import { colors } from '../../lib/theme';
+import { colors, shadows } from '../../lib/theme';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
 
@@ -189,11 +189,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginHorizontal: 20,
     marginTop: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   coffeeName: { fontSize: 22, fontWeight: '800', color: colors.textDark },
   roaster: { fontSize: 14, color: colors.textMedium, marginTop: 4 },
@@ -205,11 +201,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
 

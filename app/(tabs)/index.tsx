@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Brew, BREW_METHODS, ROAST_LEVELS } from '../../types';
-import { colors } from '../../lib/theme';
+import { colors, shadows } from '../../lib/theme';
 import { getBrews } from '../../lib/brews';
 import { activeFilterCount, BrewFilters, DEFAULT_FILTERS, filterBrews } from '../../lib/brewList';
 import StarRating from '../../components/StarRating';
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 6,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.04,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
@@ -291,11 +291,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   filterSection: { marginBottom: 12 },
   filterLabel: { fontSize: 11, fontWeight: '700', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
@@ -319,11 +315,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   cardTitles: { flex: 1 },
@@ -347,11 +339,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    ...shadows.button,
   },
   fabText: { color: colors.surface, fontSize: 16, fontWeight: '700' },
 });

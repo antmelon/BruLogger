@@ -1,15 +1,16 @@
 import { Tabs } from 'expo-router';
 import { CoffeeIcon, ChartIcon, UserIcon } from '../../components/icons';
+import { colors } from '../../lib/theme';
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#8B5A2B',
-        tabBarInactiveTintColor: '#B0A090',
-        tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#E8DFCF', height: 60, paddingBottom: 8 },
-        headerStyle: { backgroundColor: '#F5EFE6' },
-        headerTitleStyle: { color: '#4A3728', fontWeight: '700' },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textLight,
+        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 60, paddingBottom: 8 },
+        headerStyle: { backgroundColor: colors.background },
+        headerTitleStyle: { color: colors.textDark, fontWeight: '700' },
       }}
     >
       <Tabs.Screen

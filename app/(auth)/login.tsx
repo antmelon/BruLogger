@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
-import { colors } from '../../lib/theme';
+import { colors, shadows } from '../../lib/theme';
 import { CoffeeIcon } from '../../components/icons';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -84,11 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...shadows.raised,
   },
   iconWrapper: { marginBottom: 16 },
   title: { fontSize: 28, fontWeight: '700', color: colors.textDark, marginBottom: 8 },

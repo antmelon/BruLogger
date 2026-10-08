@@ -1,4 +1,5 @@
 import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
+import { colors } from '../lib/theme';
 
 interface IconProps {
   size?: number;
@@ -6,7 +7,7 @@ interface IconProps {
   strokeWidth?: number;
 }
 
-const defaults = { size: 24, color: '#9E8E7E', strokeWidth: 1.75 };
+const defaults = { size: 24, color: colors.textMedium, strokeWidth: 1.75 };
 
 export function CoffeeIcon({ size = defaults.size, color = defaults.color, strokeWidth = defaults.strokeWidth }: IconProps) {
   return (

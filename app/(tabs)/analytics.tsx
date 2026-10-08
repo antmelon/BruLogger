@@ -5,7 +5,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import Svg, { Path, Circle, Line as SvgLine, Text as SvgText } from 'react-native-svg';
 import { getBrews } from '../../lib/brews';
-import { colors } from '../../lib/theme';
+import { colors, shadows } from '../../lib/theme';
 import { avgFlavorProfile, brewStats, countBy } from '../../lib/analytics';
 import { Brew, FlavorProfile } from '../../types';
 import RadarChart from '../../components/RadarChart';
@@ -245,11 +245,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   tileValue: { fontSize: 22, fontWeight: '800', color: colors.textDark, marginBottom: 4 },
   tileValueSmall: { fontSize: 16, fontWeight: '800', color: colors.textDark, marginBottom: 4, textAlign: 'center' },
@@ -259,11 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   sectionTitle: {
     fontSize: 12,

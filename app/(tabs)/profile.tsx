@@ -5,7 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { getBrews } from '../../lib/brews';
 import { brewStats, BrewStats } from '../../lib/analytics';
-import { colors } from '../../lib/theme';
+import { colors, shadows } from '../../lib/theme';
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
@@ -84,11 +84,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 28,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
     marginBottom: 16,
   },
   avatar: {
@@ -112,11 +108,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   sectionTitle: {
     fontSize: 12,

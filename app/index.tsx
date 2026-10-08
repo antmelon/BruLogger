@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../lib/supabase';
-import { colors } from '../lib/theme';
+import { colors, shadows } from '../lib/theme';
 import { CoffeeIcon, StarIcon, SearchIcon } from '../components/icons';
 
 const FEATURES = [
@@ -25,18 +23,6 @@ const FEATURES = [
 
 export default function LandingScreen() {
   const router = useRouter();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace('/(tabs)');
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) router.replace('/(tabs)');
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   return (
     <ScrollView
@@ -144,11 +130,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 40,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    ...shadows.button,
   },
   ctaText: {
     color: colors.surface,
@@ -173,11 +155,7 @@ const styles = StyleSheet.create({
     minWidth: Platform.OS === 'web' ? 180 : undefined,
     width: Platform.OS === 'web' ? undefined : '100%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   featureIconWrapper: {
     backgroundColor: colors.surfaceIcon,
@@ -208,11 +186,7 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     width: '100%',
     marginBottom: 40,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    ...shadows.raised,
   },
   bottomCtaText: {
     fontSize: 20,

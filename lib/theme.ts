@@ -14,4 +14,32 @@ export const colors = {
   error: '#CC4444',
   accent: '#C4956A',
   primaryFaded: 'rgba(139, 90, 43, 0.25)',
+  shadow: '#000000',
+} as const;
+
+export const shadows = {
+  // Cards and sections on the background
+  card: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  // Surfaces that float higher: the login card, landing feature cards
+  raised: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  // Glow under prominent primary buttons
+  button: {
+    shadowColor: colors.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
 } as const;

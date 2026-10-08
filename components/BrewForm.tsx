@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../types';
 import { uploadBrewPhoto } from '../lib/brews';
 import { parseNumberField } from '../lib/form';
-import { colors } from '../lib/theme';
+import { colors, shadows } from '../lib/theme';
 import SliderInput from './SliderInput';
 import StarRating from './StarRating';
 import { ImageIcon } from './icons';
@@ -99,7 +99,11 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   }
 
   function pickImage() {
-    if (Platform.OS === 'ios') {
+    // Web: Alert.alert is a no-op in react-native-web, and the browser's file picker already offers
+    // the camera on phones, so open it directly.
+    if (Platform.OS === 'web') {
+      launchLibrary();
+    } else if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         { options: ['Cancel', 'Take Photo', 'Choose from Library'], cancelButtonIndex: 0 },
         (buttonIndex) => {
@@ -342,11 +346,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadows.card,
   },
   sectionTitle: {
     fontSize: 12,
@@ -412,11 +412,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...shadows.button,
   },
   submitText: { color: colors.surface, fontSize: 16, fontWeight: '700' },
 });
