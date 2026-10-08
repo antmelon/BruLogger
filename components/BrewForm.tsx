@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../types';
 import { uploadBrewPhoto } from '../lib/brews';
+import { prepareForUpload } from '../lib/photos';
 import { toBrewInsert } from '../lib/form';
 import { colors, shadows } from '../lib/theme';
 import SliderInput from './SliderInput';
@@ -63,6 +64,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(initial.photo_url ?? null);
   const [saving, setSaving] = useState(false);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function setProfileField(field: keyof FlavorProfile, val: number) {
@@ -78,12 +80,9 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 1, // prepareForUpload does the compression
     });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoUrl(null);
-    }
+    if (!result.canceled && result.assets[0]) await setPickedPhoto(result.assets[0]);
   }
 
   async function launchLibrary() {
@@ -91,12 +90,16 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 1, // prepareForUpload does the compression
     });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoUrl(null);
-    }
+    if (!result.canceled && result.assets[0]) await setPickedPhoto(result.assets[0]);
+  }
+
+  async function setPickedPhoto(asset: ImagePicker.ImagePickerAsset) {
+    setPreparingPhoto(true);
+    setPhotoUri(await prepareForUpload(asset));
+    setPhotoUrl(null);
+    setPreparingPhoto(false);
   }
 
   function pickImage() {
@@ -313,8 +316,8 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={saving} activeOpacity={0.85}>
-        {saving
+      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={saving || preparingPhoto} activeOpacity={0.85}>
+        {saving || preparingPhoto
           ? <ActivityIndicator color={colors.surface} />
           : <Text style={styles.submitText}>{submitLabel}</Text>}
       </TouchableOpacity>
