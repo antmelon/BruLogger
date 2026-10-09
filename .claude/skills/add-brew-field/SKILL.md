@@ -42,7 +42,7 @@ Add an `InfoRow` in the right section, rendered only when set, with a unit suffi
 ## 6. HTTP API and Hermes skill
 
 - `lib/brewInput.ts`: add the field to `TEXT_FIELDS` / `NUMBER_FIELDS` (or handle it explicitly, for enums and objects) so `POST /api/brews` accepts it. Unknown keys are rejected. Add a case to `__tests__/brewInput.test.ts`.
-- `integrations/hermes/log-brew/SKILL.md`: add a row to the Fields table so the bot knows to fill it in. Then install it on melchior with the command in CLAUDE.md (under `api/brews/`).
+- `integrations/hermes/log-brew/SKILL.md`: add a row to the Fields table so the bot knows to fill it in. Then install it on the bot's host and restart the agent (see the `api/brews/` entry in CLAUDE.md).
 
 ## 7. Optional surfaces (ask yourself whether each applies)
 
