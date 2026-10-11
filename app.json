@@ -1,14 +1,18 @@
 {
   "expo": {
     "name": "BruLogger",
-    "slug": "BruLogger",
+    "owner": "alongo0925",
+    "slug": "brulogger",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.antmelon.brulogger"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.antmelon.brulogger",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.antmelon.brulogger",
@@ -38,7 +42,34 @@
           "imageWidth": 200
         }
       ],
-      "@sentry/react-native"
-    ]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BruLogger uses your photo library so you can add a photo to a brew.",
+          "cameraPermission": "BruLogger uses the camera so you can take a photo of your brew.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "brulogger",
+          "project": "brulogger-app",
+          "url": "https://sentry.io/"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a94e725e-0fda-4112-89e7-64f50c1cdd7a"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a94e725e-0fda-4112-89e7-64f50c1cdd7a"
+    }
   }
 }
