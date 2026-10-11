@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../lib/theme';
 
-function LegalLink({ to, children }: { to: '/privacy' | '/terms'; children: string }) {
+function LegalLink({ to, children }: { to: '/privacy' | '/terms' | '/support'; children: string }) {
   const router = useRouter();
   return (
     <Text style={styles.link} role="link" onPress={() => router.push(to)} suppressHighlighting>
@@ -11,13 +11,15 @@ function LegalLink({ to, children }: { to: '/privacy' | '/terms'; children: stri
   );
 }
 
-/** "Privacy Policy · Terms of Service", for page footers. */
+/** "Privacy Policy · Terms of Service · Support", for page footers. */
 export function LegalLinks() {
   return (
     <View style={styles.row}>
       <LegalLink to="/privacy">Privacy Policy</LegalLink>
       <Text style={styles.text} aria-hidden>·</Text>
       <LegalLink to="/terms">Terms of Service</LegalLink>
+      <Text style={styles.text} aria-hidden>·</Text>
+      <LegalLink to="/support">Support</LegalLink>
     </View>
   );
 }

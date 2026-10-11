@@ -8,9 +8,10 @@ export function authRedirect(segments: string[], signedIn: boolean): AuthRedirec
   const landing = segments.length === 0;
   const signIn = segments[0] === '(auth)';
   const callback = segments[0] === 'auth'; // /auth/callback finishes a web sign-in
-  const legal = segments[0] === '(legal)'; // privacy policy and terms: public, and linked from both stores
+  // Privacy policy, terms and support: open to everyone, since the app stores link to them
+  const publicPage = segments[0] === '(public)';
 
-  if (legal) return null;
+  if (publicPage) return null;
   if (!signedIn) return landing || signIn || callback ? null : '/(auth)/login';
   return landing || signIn ? '/(tabs)' : null;
 }
