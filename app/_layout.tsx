@@ -6,8 +6,12 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryClient, useAppStateFocus } from '../lib/brewQueries';
 import { authRedirect } from '../lib/authGate';
+import { initCrashReports, withCrashReports } from '../lib/sentry';
 import { colors } from '../lib/theme';
 import { ArrowLeftIcon } from '../components/icons';
+
+// Before anything renders, so startup errors are caught too
+initCrashReports();
 
 function HomeButton({ to, label }: { to: '/(tabs)' | '/'; label: string }) {
   const router = useRouter();
@@ -43,7 +47,7 @@ function stackedScreen(title: string, home: 'brews' | 'landing' = 'brews') {
   });
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const router = useRouter();
   const segments = useSegments();
@@ -86,6 +90,8 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+export default withCrashReports(RootLayout);
 
 const styles = StyleSheet.create({
   homeButton: { paddingHorizontal: 12, paddingVertical: 8 },

@@ -69,6 +69,7 @@ flowchart LR
 | Backend | [Supabase](https://supabase.com): Postgres, Auth (Google OAuth), Storage |
 | Hosting and API | [Vercel](https://vercel.com): the static web build plus Node functions in `api/` |
 | Telegram bot | A [Hermes](https://github.com/NousResearch/hermes-agent) agent with the skill in [`integrations/hermes/log-brew`](integrations/hermes/log-brew/SKILL.md) |
+| Crash reports | [Sentry](https://sentry.io), in the app (`lib/sentry.ts`) and the API (`server/api.ts`), production only |
 
 ## The app
 
@@ -141,6 +142,17 @@ sequenceDiagram
 ```
 
 On the web, the browser returns to `/auth/callback` and supabase-js does the exchange there. On iOS and Android, the login screen opens an in-app browser, receives the `brulogger://auth/callback?code=…` redirect, and does the exchange itself. On native, the session token's refresh timer is restarted whenever the app comes back to the foreground.
+
+## Crash reports
+
+Production errors from the app (iOS, Android and web) and from the API go to [Sentry](https://sentry.io), which emails when a new kind of error shows up. Reports are deliberately minimal, and the [privacy policy](https://brulogger.com/privacy) describes them:
+
+- **Errors only.** No performance tracing, session tracking, session replay, screenshots or view hierarchy.
+- **No personal data.** No name, email or IP address is attached, and the Sentry projects are set not to store IP addresses.
+- **Secrets are scrubbed before sending.** Signed photo tokens and sign-in codes or tokens are replaced with `[Filtered]` anywhere in a report, including breadcrumb URLs and error messages (`scrubReport` in `lib/crashReports.ts`, unit-tested).
+- **Readable stack traces.** The web build uploads its source maps (see Environments and deployment).
+
+Reporting is on only where a DSN is set (Vercel Production), so local development and preview deploys report nothing. In the API, `reportError` logs a failure and reports it, and `withErrorReports` turns an unexpected exception in a handler into a reported 500.
 
 ## Accessibility
 
@@ -377,7 +389,7 @@ flowchart LR
   migrations -- "db push --db-url" --> sbdev
 ```
 
-**Vercel project settings:** Node 24.x, build command `npx expo export --platform web`, output directory `dist`. `vercel.json` sends every non-`/api` path to `index.html` so client-side routes work. Files in `api/` deploy as Node functions.
+**Vercel project settings:** Node 24.x, output directory `dist`. The build command is set in `vercel.json`: `scripts/build-web.sh` runs `npx expo export --platform web` with source maps. When `SENTRY_AUTH_TOKEN` is set, it uploads the maps to Sentry, then deletes them so they aren't served. `vercel.json` sends every non-`/api` path to `index.html` so client-side routes work. Files in `api/` deploy as Node functions.
 
 **Environment variables:**
 
@@ -388,6 +400,9 @@ flowchart LR
 | `SUPABASE_SERVICE_ROLE_KEY` | API | Production |
 | `BRULOGGER_API_TOKEN` | API: the bot's bearer token | Production |
 | `BRULOGGER_USER_ID` | API: the account the bot writes to | Production |
+| `EXPO_PUBLIC_SENTRY_DSN` | App: where crash reports go (built into the bundle; unset means off) | Production |
+| `SENTRY_DSN` | API: where error reports go | Production |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Build: uploading web source maps to Sentry | Production |
 
 `EXPO_PUBLIC_*` values are compiled into the web bundle at build time, so changing one needs a redeploy. The dev Supabase project is on the free plan and pauses after a week without use. If a preview fails with `ERR_NAME_NOT_RESOLVED`, restore the project from the Supabase dashboard.
 
@@ -434,6 +449,8 @@ components/             BrewForm, RadarChart, StarRating, SliderInput, LegalPage
 lib/
   brews.ts              Data access: the only place that queries Supabase for brews
   account.ts            Account deletion
+  crashReports.ts       Scrubs secrets out of crash reports
+  sentry.ts             Starts crash reporting (production only)
   authGate.ts           Which screens need sign-in (used by the root layout)
   install.ts            Install button for the web app
   a11y.ts               What screen readers say for ratings, cards and charts

@@ -11,12 +11,15 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,js,json}\"",
     "typecheck": "tsc --noEmit",
-    "db:types": "supabase gen types typescript --linked --schema public > types/database.ts"
+    "db:types": "supabase gen types typescript --linked --schema public > types/database.ts",
+    "build:web": "bash scripts/build-web.sh"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/slider": "5.2.0",
     "@react-native-masked-view/masked-view": "0.3.2",
+    "@sentry/node": "10.75.3",
+    "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.99.3",
     "@tanstack/react-query": "^5.104.1",
     "expo": "~57.0.27",

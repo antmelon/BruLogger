@@ -316,3 +316,17 @@ describe('DELETE /api/brews/:id', () => {
     expect((await DELETE(req('DELETE', { path: `/${ID}` }))).status).toBe(404);
   });
 });
+
+describe('unexpected errors', () => {
+  it('answers 500 instead of crashing when a handler throws', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockQuery.order.mockImplementation(() => {
+      throw new TypeError('boom');
+    });
+
+    const res = await GET(req('GET'));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'Something went wrong.' });
+  });
+});

@@ -19,6 +19,7 @@ const SECTIONS: LegalSection[] = [
       'Your brews. Everything you enter: the coffee, how you brewed it, ratings, flavor profiles and notes, and when you logged each brew.',
       'Your photos. Photos you add to brews are stored privately. Only your account can see them, through links that expire after an hour.',
       'Technical logs. Our hosting and sign-in providers record technical details such as IP address, browser or device type, and the time of each request, to keep the service running and secure. These logs are kept for a short time.',
+      'Crash reports. When the app or website runs into an error, it sends us a report so we can fix it: what went wrong and where in the code, the steps just before it, the app version, and your device type and operating system. Reports don\'t include your name, email address or IP address, and anything that would give access to your account or photos is removed before they\'re sent.',
     ],
   },
   {
@@ -46,6 +47,7 @@ const SECTIONS: LegalSection[] = [
       'Vercel: hosts the website and its servers.',
       'Google: signs you in, under Google\'s own privacy policy.',
       'Backblaze: stores our encrypted backups.',
+      'Sentry: receives crash reports.',
     ],
   },
   {

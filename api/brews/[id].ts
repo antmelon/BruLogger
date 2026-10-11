@@ -1,6 +1,7 @@
 import { parseBrewPatch } from '../../lib/brewInput';
 import {
   authorize, Context, error, json, parsePhoto, readJsonObject, removePhoto, uploadPhoto,
+  reportError, withErrorReports,
 } from '../../server/api';
 
 // One brew by id, for the Hermes Telegram bot. See ./index.ts for listing and creating.
@@ -22,7 +23,7 @@ async function findBrew(ctx: Context, id: string) {
   const { data, error: dbError } = await ctx.db
     .from('brews').select('*').eq('id', id).eq('user_id', ctx.userId).maybeSingle();
   if (dbError) {
-    console.error('api/brews/:id lookup:', dbError);
+    await reportError('api/brews/:id lookup', dbError);
     return error(500, 'Failed to load brew.');
   }
   return data;
@@ -30,7 +31,7 @@ async function findBrew(ctx: Context, id: string) {
 
 const notFound = () => error(404, 'Brew not found.');
 
-export async function GET(request: Request) {
+export const GET = withErrorReports(async (request: Request) => {
   const ctx = authorize(request);
   if (ctx instanceof Response) return ctx;
   const id = brewId(request);
@@ -39,9 +40,9 @@ export async function GET(request: Request) {
   const brew = await findBrew(ctx, id);
   if (brew instanceof Response) return brew;
   return brew ? json({ brew }) : notFound();
-}
+});
 
-export async function PATCH(request: Request) {
+export const PATCH = withErrorReports(async (request: Request) => {
   const ctx = authorize(request);
   if (ctx instanceof Response) return ctx;
   const id = brewId(request);
@@ -71,7 +72,7 @@ export async function PATCH(request: Request) {
   const { data, error: dbError } = await ctx.db
     .from('brews').update(changes).eq('id', id).eq('user_id', ctx.userId).select().single();
   if (dbError) {
-    console.error('api/brews/:id update:', dbError);
+    await reportError('api/brews/:id update', dbError);
     if (newPhoto && changes.photo_path) await removePhoto(ctx, changes.photo_path);
     return error(500, 'Failed to update brew.');
   }
@@ -80,9 +81,9 @@ export async function PATCH(request: Request) {
     await removePhoto(ctx, existing.photo_path);
   }
   return json({ brew: data });
-}
+});
 
-export async function DELETE(request: Request) {
+export const DELETE = withErrorReports(async (request: Request) => {
   const ctx = authorize(request);
   if (ctx instanceof Response) return ctx;
   const id = brewId(request);
@@ -94,9 +95,9 @@ export async function DELETE(request: Request) {
 
   const { error: dbError } = await ctx.db.from('brews').delete().eq('id', id).eq('user_id', ctx.userId);
   if (dbError) {
-    console.error('api/brews/:id delete:', dbError);
+    await reportError('api/brews/:id delete', dbError);
     return error(500, 'Failed to delete brew.');
   }
   if (existing.photo_path) await removePhoto(ctx, existing.photo_path);
   return json({ deleted: existing });
-}
+});

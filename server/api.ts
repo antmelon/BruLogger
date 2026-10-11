@@ -1,7 +1,9 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import * as Sentry from '@sentry/node';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
 import { PHOTO_BUCKET } from '../lib/storage';
+import { scrubReport } from '../lib/crashReports';
 
 // Shared by the HTTP API functions in api/ (used by the Hermes Telegram bot). Kept outside api/
 // so Vercel doesn't deploy it as a function of its own.
@@ -9,7 +11,7 @@ import { PHOTO_BUCKET } from '../lib/storage';
 // Single-user: a bearer token maps to one Supabase user, and writes use the service role key,
 // so these handlers (not RLS) are what scope access to that user's rows.
 // Env (Production): EXPO_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-// BRULOGGER_API_TOKEN, BRULOGGER_USER_ID.
+// BRULOGGER_API_TOKEN, BRULOGGER_USER_ID, and SENTRY_DSN for error reports.
 
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024; // base64 inflates ~33%, keeping the body under Vercel's 4.5 MB cap
 const PHOTO_TYPES: Record<string, string> = {
@@ -17,6 +19,47 @@ const PHOTO_TYPES: Record<string, string> = {
 };
 
 export type Context = { db: SupabaseClient<Database>; userId: string };
+
+// Error reports to Sentry, only where SENTRY_DSN is set (Vercel Production). Same limits as the
+// app's (lib/sentry.ts): errors only, no personal data, secrets scrubbed.
+const sentryDsn = process.env.SENTRY_DSN;
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: process.env.VERCEL_ENV ?? 'development',
+    sendDefaultPii: false,
+    tracesSampleRate: 0,
+    beforeSend: (event) => scrubReport(event),
+    beforeBreadcrumb: (breadcrumb) => scrubReport(breadcrumb),
+  });
+}
+
+/** Logs a server-side failure and reports it to Sentry. `where` names the step that failed. */
+export async function reportError(where: string, err: unknown): Promise<void> {
+  console.error(`${where}:`, err);
+  if (!sentryDsn) return;
+  // Supabase errors are plain objects ({ message, code, details, hint }), not Errors
+  const exception = err instanceof Error
+    ? err
+    : new Error(`${where}: ${(err as { message?: unknown } | null)?.message ?? String(err)}`);
+  Sentry.captureException(exception, { tags: { where }, extra: { detail: err } });
+  // The function may be frozen once it responds, so send the report first
+  await Sentry.flush(2000);
+}
+
+type Handler = (request: Request) => Promise<Response>;
+
+/** A handler that answers 500 (and reports the error) instead of crashing when something throws. */
+export function withErrorReports(handler: Handler): Handler {
+  return async (request) => {
+    try {
+      return await handler(request);
+    } catch (e) {
+      await reportError(`${request.method} ${new URL(request.url).pathname}`, e);
+      return error(500, 'Something went wrong.');
+    }
+  };
+}
 
 export function json(body: unknown, status = 200) {
   return Response.json(body, { status });
@@ -37,7 +80,7 @@ export function authorize(request: Request): Context | Response {
   const token = process.env.BRULOGGER_API_TOKEN;
   const userId = process.env.BRULOGGER_USER_ID;
   if (!url || !serviceKey || !token || !userId) {
-    console.error('api: missing env configuration');
+    void reportError('api', new Error('missing env configuration'));
     return error(500, 'Server is not configured.');
   }
 
@@ -98,7 +141,7 @@ export async function uploadPhoto(ctx: Context, photo: Photo): Promise<string | 
     .from(PHOTO_BUCKET)
     .upload(path, photo.bytes, { contentType: photo.mimeType });
   if (uploadError) {
-    console.error('api photo upload:', uploadError);
+    await reportError('api photo upload', uploadError);
     return null;
   }
   return path;
@@ -107,5 +150,5 @@ export async function uploadPhoto(ctx: Context, photo: Photo): Promise<string | 
 /** Best-effort removal of a stored photo (the DB write already succeeded). */
 export async function removePhoto(ctx: Context, path: string): Promise<void> {
   const { error: removeError } = await ctx.db.storage.from(PHOTO_BUCKET).remove([path]);
-  if (removeError) console.error('api photo remove:', removeError);
+  if (removeError) await reportError('api photo remove', removeError);
 }
