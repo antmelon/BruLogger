@@ -389,6 +389,34 @@ flowchart LR
 
 `EXPO_PUBLIC_*` values are compiled into the web bundle at build time, so changing one needs a redeploy. The dev Supabase project is on the free plan and pauses after a week without use. If a preview fails with `ERR_NAME_NOT_RESOLVED`, restore the project from the Supabase dashboard.
 
+## Backups
+
+Supabase's free plan has no backups, and its paid backups leave out Storage files anyway. So a home server backs up production every night at 23:15:
+
+- **Database:** a `pg_dump` (custom format), signed in as `brulogger_backup`, a read-only role. It covers the `public`, `auth` and `storage` schemas: brews, accounts and linked Google identities, and the bucket and photo records. Sign-in sessions, refresh tokens, MFA claims and the auth audit log are left out, so a leaked dump can't be used to sign in. After a restore, people sign in again. Before a dump is kept, it must list the `brews` data.
+- **Photos:** the `brew-photos` bucket is mirrored with rclone over Supabase Storage's S3 endpoint.
+- **Retention:** 14 days of dumps on the server. The server's own encrypted restic backup copies them off-site every night and keeps months of history.
+- **Failures** send a Telegram message.
+
+The job itself is defined in the server's own configuration, not in this repo.
+
+### Restoring
+
+**Into a fresh Supabase project** (the old one is gone):
+
+1. Create the project, link it (`npx supabase link`) and run `npx supabase db push`. The migrations recreate the schema and the private `brew-photos` bucket.
+2. Load the accounts first, then the brews, which reference them:
+   ```sh
+   pg_restore --data-only --no-owner --schema=auth --table=users --table=identities -d "$NEW_DB_URL" brulogger-<date>.dump
+   pg_restore --data-only --no-owner --schema=public --table=brews -d "$NEW_DB_URL" brulogger-<date>.dump
+   ```
+3. Upload the photos to the same paths: `rclone copy photos/ <new-project-remote>:brew-photos`.
+4. Point the app at the new project: the Vercel environment variables, `.env.local`, and the Google provider and redirect URLs in Supabase Auth.
+
+**Undoing a mistake** (a bad migration, deleted brews): restore the dump into a throwaway Postgres (`pg_restore --no-owner --no-acl`; errors about Supabase's roles are expected), then copy the rows you need back.
+
+Restoring a dump into plain Postgres has been tested. A full restore into a new Supabase project hasn't been rehearsed yet.
+
 ## Project layout
 
 ```text
