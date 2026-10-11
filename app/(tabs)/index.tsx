@@ -9,6 +9,7 @@ import { colors, shadows } from '../../lib/theme';
 import { useBrews } from '../../lib/brewQueries';
 import { activeFilterCount, BrewFilters, DEFAULT_FILTERS, filterBrews } from '../../lib/brewList';
 import StarRating from '../../components/StarRating';
+import { brewCardLabel } from '../../lib/a11y';
 import { CoffeeIcon, SearchIcon } from '../../components/icons';
 
 const NO_BREWS: Brew[] = [];
@@ -19,7 +20,13 @@ function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
   });
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
+      activeOpacity={0.8}
+      role="button"
+      aria-label={brewCardLabel(brew, date)}
+    >
       <View style={styles.cardHeader}>
         <View style={styles.cardTitles}>
           <Text style={styles.coffeeName}>{brew.coffee_name}</Text>
@@ -52,14 +59,19 @@ function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
   );
 }
 
+/** One choice in a filter group; tapping the chosen one again clears it (except Sort By). */
 function FilterPill({
-  label, active, onPress,
-}: { label: string; active: boolean; onPress: () => void }) {
+  label, spokenLabel, active, onPress,
+}: { label: string; spokenLabel?: string; active: boolean; onPress: () => void }) {
   return (
     <TouchableOpacity
       style={[styles.filterPill, active && styles.filterPillActive]}
       onPress={onPress}
       activeOpacity={0.7}
+      role="radio"
+      aria-checked={active}
+      aria-label={spokenLabel ?? label}
+      hitSlop={{ top: 8, bottom: 8 }}
     >
       <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{label}</Text>
     </TouchableOpacity>
@@ -110,6 +122,7 @@ export default function BrewsScreen() {
         <View style={styles.searchBox}>
           <SearchIcon size={16} color={colors.textLight} />
           <TextInput
+            aria-label="Search brews"
             style={styles.searchInput}
             value={query}
             onChangeText={(text) => updateFilters({ query: text })}
@@ -118,7 +131,12 @@ export default function BrewsScreen() {
             clearButtonMode="while-editing"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => updateFilters({ query: '' })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity
+              onPress={() => updateFilters({ query: '' })}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              role="button"
+              aria-label="Clear search"
+            >
               <Text style={styles.clearText}>✕</Text>
             </TouchableOpacity>
           )}
@@ -127,6 +145,9 @@ export default function BrewsScreen() {
           style={[styles.filterToggle, filterCount > 0 && styles.filterToggleActive]}
           onPress={() => setShowFilters((v) => !v)}
           activeOpacity={0.7}
+          role="button"
+          aria-expanded={showFilters}
+          aria-label={filterCount > 0 ? `Filters, ${filterCount} on` : 'Filters'}
         >
           <Text style={[styles.filterToggleText, filterCount > 0 && styles.filterToggleTextActive]}>
             {filterCount > 0 ? `Filters (${filterCount})` : 'Filter'}
@@ -135,7 +156,7 @@ export default function BrewsScreen() {
       </View>
 
       {refreshFailed && (
-        <TouchableOpacity style={styles.refreshError} onPress={refresh} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.refreshError} onPress={refresh} activeOpacity={0.7} role="button">
           <Text style={styles.refreshErrorText}>Couldn&apos;t refresh your brews. Tap to retry.</Text>
         </TouchableOpacity>
       )}
@@ -144,8 +165,8 @@ export default function BrewsScreen() {
       {showFilters && (
         <View style={styles.filterPanel}>
           <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Sort By</Text>
-            <View style={styles.pillRow}>
+            <Text style={styles.filterLabel} aria-hidden>Sort By</Text>
+            <View style={styles.pillRow} role="radiogroup" aria-label="Sort by">
               {([['newest', 'Newest'], ['oldest', 'Oldest'], ['top_rated', 'Top Rated'], ['name', 'Name A–Z']] as const).map(([val, label]) => (
                 <FilterPill
                   key={val}
@@ -158,8 +179,8 @@ export default function BrewsScreen() {
           </View>
 
           <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Brew Method</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
+            <Text style={styles.filterLabel} aria-hidden>Brew Method</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow} role="radiogroup" aria-label="Brew method">
               {BREW_METHODS.map((m) => (
                 <FilterPill
                   key={m}
@@ -172,8 +193,8 @@ export default function BrewsScreen() {
           </View>
 
           <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Roast Level</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
+            <Text style={styles.filterLabel} aria-hidden>Roast Level</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow} role="radiogroup" aria-label="Roast level">
               {ROAST_LEVELS.map((r) => (
                 <FilterPill
                   key={r}
@@ -186,12 +207,13 @@ export default function BrewsScreen() {
           </View>
 
           <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Minimum Rating</Text>
-            <View style={styles.pillRow}>
+            <Text style={styles.filterLabel} aria-hidden>Minimum Rating</Text>
+            <View style={styles.pillRow} role="radiogroup" aria-label="Minimum rating">
               {[1, 2, 3, 4, 5].map((n) => (
                 <FilterPill
                   key={n}
                   label={'★'.repeat(n)}
+                  spokenLabel={n === 1 ? '1 star and up' : `${n} stars and up`}
                   active={minRating === n}
                   onPress={() => updateFilters({ minRating: minRating === n ? null : n })}
                 />
@@ -200,7 +222,7 @@ export default function BrewsScreen() {
           </View>
 
           {filterCount > 0 && (
-            <TouchableOpacity onPress={clearFilters} style={styles.clearFilters}>
+            <TouchableOpacity onPress={clearFilters} style={styles.clearFilters} role="button">
               <Text style={styles.clearFiltersText}>Clear all filters</Text>
             </TouchableOpacity>
           )}
@@ -219,8 +241,8 @@ export default function BrewsScreen() {
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
               {loadError ? null : brews.length === 0
-                ? <CoffeeIcon size={48} color={colors.textFaint} strokeWidth={1.25} />
-                : <SearchIcon size={48} color={colors.textFaint} strokeWidth={1.25} />}
+                ? <CoffeeIcon size={48} color={colors.iconFaint} strokeWidth={1.25} />
+                : <SearchIcon size={48} color={colors.iconFaint} strokeWidth={1.25} />}
             </View>
             <Text style={styles.emptyTitle}>
               {loadError ? 'Could not load brews' : brews.length === 0 ? 'No brews yet' : 'No results'}
@@ -237,7 +259,13 @@ export default function BrewsScreen() {
         )}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/brew/new')} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/brew/new')}
+        activeOpacity={0.85}
+        role="button"
+        aria-label="Log a brew"
+      >
         <Text style={styles.fabText}>+ Log Brew</Text>
       </TouchableOpacity>
     </View>

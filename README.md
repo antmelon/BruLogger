@@ -140,6 +140,17 @@ sequenceDiagram
 
 On the web, the browser returns to `/auth/callback` and supabase-js does the exchange there. On iOS and Android, the login screen opens an in-app browser, receives the `brulogger://auth/callback?code=…` redirect, and does the exchange itself. On native, the session token's refresh timer is restarted whenever the app comes back to the foreground.
 
+## Accessibility
+
+The app is built to work with VoiceOver, TalkBack, web screen readers and a keyboard, and at large system text sizes.
+
+- **Every control says what it is.** Buttons, fields, choice pills (with which one is selected), headings and the photo all have roles and labels.
+- **Drawn things are described.** The star rating, flavor radar, rating trend and bar charts are each read as one item with a spoken summary (`lib/a11y.ts`). For example: "Flavor profile, out of 5: aromatics 4, acidity 3.5, …". When rating a brew, the stars are a single adjustable control: swipe up or down with a screen reader, or use the arrow keys on the web, to move half a star.
+- **Readable colors.** Every text color meets WCAG AA contrast (4.5:1) on every background, and chart lines meet 3:1. `__tests__/theme.test.ts` checks the theme tokens, so a color change can't quietly break this.
+- **Large text.** Text follows the system text size. Only the tab bar labels (like iOS's own tab bars) and the decorative avatar letter stay fixed.
+
+In October 2026, an axe-core audit of every screen of the web build found no WCAG 2.2 AA violations (down from 62 problems on 8 screens before this work).
+
 ## Data model
 
 Each Brew is one row in `public.brews`, owned by a Supabase Auth user. A photo is a file in the private `brew-photos` storage bucket, stored under the owner's user ID; the brew keeps its storage path. For what each domain term means, see the [glossary](CONTEXT.md).
@@ -393,6 +404,7 @@ lib/
   brews.ts              Data access: the only place that queries Supabase for brews
   account.ts            Account deletion
   install.ts            Install button for the web app
+  a11y.ts               What screen readers say for ratings, cards and charts
   brewQueries.ts        TanStack Query hooks used by screens
   brewList.ts           Search, filter, sort for My Brews
   analytics.ts          Stats and averages

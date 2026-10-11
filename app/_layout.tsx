@@ -14,8 +14,8 @@ function HomeButton() {
     <TouchableOpacity
       onPress={() => router.replace('/(tabs)')}
       style={styles.homeButton}
-      accessibilityRole="button"
-      accessibilityLabel="Back to My Brews"
+      role="button"
+      aria-label="Back to My Brews"
     >
       <ArrowLeftIcon color={colors.primary} strokeWidth={2} />
     </TouchableOpacity>

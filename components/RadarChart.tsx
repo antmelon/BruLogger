@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import Svg, { Polygon, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { FlavorProfile } from '../types';
 import { colors } from '../lib/theme';
+import { flavorProfileLabel } from '../lib/a11y';
 
 interface RadarChartProps {
   profile: FlavorProfile;
@@ -70,8 +71,9 @@ export default function RadarChart({ profile, size = 260 }: RadarChartProps) {
   }).join(' ');
 
   return (
-    <View style={styles.container}>
-      <Svg width={svgWidth} height={svgHeight}>
+    // One picture to screen readers, described in words; the drawn axis labels aren't read
+    <View style={styles.container} accessible role="img" aria-label={flavorProfileLabel(profile)}>
+      <Svg width={svgWidth} height={svgHeight} aria-hidden>
         {/* Grid rings */}
         {rings.map((points, i) => (
           <Polygon

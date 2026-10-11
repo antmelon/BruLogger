@@ -37,7 +37,7 @@ export default function LandingScreen() {
         <View style={styles.iconWrapper}>
           <CoffeeIcon size={56} color={colors.primary} strokeWidth={1.5} />
         </View>
-        <Text style={styles.appName}>BruLogger</Text>
+        <Text style={styles.appName} role="heading">BruLogger</Text>
         <Text style={styles.tagline}>Your personal coffee journal.</Text>
         <Text style={styles.subTagline}>
           Track, rate, and remember every brew — from your morning pour over to an afternoon espresso.
@@ -46,6 +46,7 @@ export default function LandingScreen() {
           style={styles.ctaButton}
           onPress={() => router.push('/(auth)/login')}
           activeOpacity={0.85}
+          role="button"
         >
           <Text style={styles.ctaText}>Get Started — it&apos;s free</Text>
         </TouchableOpacity>
@@ -54,6 +55,7 @@ export default function LandingScreen() {
             style={[styles.secondaryButton, styles.installButton]}
             onPress={install}
             activeOpacity={0.85}
+            role="button"
           >
             <Text style={styles.secondaryButtonText}>Install the app</Text>
           </TouchableOpacity>
@@ -67,7 +69,7 @@ export default function LandingScreen() {
             <View style={styles.featureIconWrapper}>
               <f.Icon size={28} color={colors.primary} strokeWidth={1.5} />
             </View>
-            <Text style={styles.featureTitle}>{f.title}</Text>
+            <Text style={styles.featureTitle} role="heading">{f.title}</Text>
             <Text style={styles.featureDescription}>{f.description}</Text>
           </View>
         ))}
@@ -80,6 +82,7 @@ export default function LandingScreen() {
           style={styles.secondaryButton}
           onPress={() => router.push('/(auth)/login')}
           activeOpacity={0.85}
+          role="button"
         >
           <Text style={styles.secondaryButtonText}>Sign in with Google</Text>
         </TouchableOpacity>
@@ -221,6 +224,6 @@ const styles = StyleSheet.create({
 
   footer: {
     fontSize: 12,
-    color: colors.textFaint,
+    color: colors.textLight,
   },
 });

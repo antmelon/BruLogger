@@ -12,9 +12,11 @@ interface SliderInputProps {
 }
 
 export default function SliderInput({ label, value, onChange, min = 1, max = 5 }: SliderInputProps) {
+  const valueText = `${value} out of ${max}`;
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
+      {/* The slider itself carries the label and value for screen readers */}
+      <View style={styles.row} aria-hidden>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.value}>{value}</Text>
       </View>
@@ -26,6 +28,8 @@ export default function SliderInput({ label, value, onChange, min = 1, max = 5 }
           step={0.5}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
+          aria-label={label}
+          aria-valuetext={valueText}
           style={{ width: '100%', accentColor: colors.primary }}
         />
       ) : (
@@ -39,6 +43,8 @@ export default function SliderInput({ label, value, onChange, min = 1, max = 5 }
           minimumTrackTintColor={colors.primary}
           maximumTrackTintColor={colors.borderLight}
           thumbTintColor={colors.primary}
+          accessibilityLabel={label}
+          accessibilityValue={{ text: valueText }}
         />
       )}
     </View>

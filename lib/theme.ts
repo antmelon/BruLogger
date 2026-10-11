@@ -1,3 +1,5 @@
+// Every text color (placeholders too) reads at 4.5:1 or better on every surface, and chart
+// lines and bars at 3:1 on cards (WCAG AA); __tests__/theme.test.ts holds them to it.
 export const colors = {
   primary: '#8B5A2B',
   background: '#F5EFE6',
@@ -5,14 +7,14 @@ export const colors = {
   surfaceWarm: '#FDFAF6',
   surfaceIcon: '#FFF8F0',
   textDark: '#4A3728',
-  textMedium: '#8C7B6E',
-  textLight: '#B0A090',
+  textMedium: '#73655B',
+  textLight: '#7B6958', // the lightest text color: placeholders, dates, hints
   textMuted: '#6B5B4E',
-  textFaint: '#C4B8A8',
+  iconFaint: '#C4B8A8', // decoration only (large empty-state icons), never text
   border: '#E8DFCF',
   borderLight: '#D4C5A9',
-  error: '#CC4444',
-  accent: '#C4956A',
+  error: '#C63636',
+  accent: '#BC8757',
   primaryFaded: 'rgba(139, 90, 43, 0.25)',
   shadow: '#000000',
 } as const;
