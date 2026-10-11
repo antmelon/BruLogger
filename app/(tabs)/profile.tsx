@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Platform,
+} from 'react-native';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { deleteAccount } from '../../lib/account';
 import { brewStats } from '../../lib/analytics';
 import { useBrews } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
@@ -19,10 +22,39 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
   const { data: brews, isPending } = useBrews();
   const stats = useMemo(() => (brews ? brewStats(brews) : null), [brews]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
+
+  // On success the session ends and the auth gate takes the user back to the landing page
+  async function performDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+    } catch {
+      setDeleting(false);
+      const message = 'Could not delete your account. Please try again.';
+      if (Platform.OS === 'web') window.alert(message);
+      else Alert.alert('Delete failed', message);
+    }
+  }
+
+  function confirmDeleteAccount() {
+    const count = brews?.length ?? 0;
+    const message =
+      `This permanently deletes your account, your ${count} ${count === 1 ? 'brew' : 'brews'} and their ` +
+      "photos. It can't be undone.";
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Delete your account?\n\n${message}`)) performDeleteAccount();
+    } else {
+      Alert.alert('Delete your account?', message, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete Account', style: 'destructive', onPress: performDeleteAccount },
+      ]);
+    }
+  }
 
   if (isPending) {
     return (
@@ -61,6 +93,18 @@ export default function ProfileScreen() {
 
       <TouchableOpacity style={styles.signOut} onPress={() => supabase.auth.signOut()} activeOpacity={0.85}>
         <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.deleteAccount}
+        onPress={confirmDeleteAccount}
+        disabled={deleting}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+      >
+        {deleting
+          ? <ActivityIndicator color={colors.error} />
+          : <Text style={styles.deleteAccountText}>Delete Account</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -133,4 +177,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signOutText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
+
+  deleteAccount: {
+    marginTop: 12,
+    borderWidth: 1.5,
+    borderColor: colors.error,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deleteAccountText: { color: colors.error, fontSize: 15, fontWeight: '600' },
 });

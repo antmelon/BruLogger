@@ -88,7 +88,7 @@ flowchart TD
   subgraph tabs [Tabs]
     list["My Brews<br/>search · filter · sort"]
     analytics["Analytics"]
-    profile["Profile<br/>stats · sign out"]
+    profile["Profile<br/>stats · sign out · delete account"]
   end
 
   list --> detail["Brew detail<br/>/brew/:id"]
@@ -190,6 +190,7 @@ The schema lives in [`supabase/migrations/`](supabase/migrations), and `types/da
 
 - **Row-level security** on `brews`: a signed-in user can read, create, update and delete only rows whose `user_id` is their own, and can't move a brew to another user.
 - **Private photos**: the `brew-photos` bucket isn't public. Storage policies let users upload, read and delete only files in their own folder, and the app displays a photo through a signed link that expires after an hour. The bucket only accepts images up to 5 MB.
+- **Account deletion**: Profile → Delete Account removes everything the user has stored. The app first deletes every file in their photo folder through the Storage API (SQL can't delete storage files), then calls the `delete_account()` database function, which deletes the user's auth account; their brews go with it (`on delete cascade`). Only signed-in users can call the function, and it only deletes the caller. If the photos can't be deleted, the account is left alone so the user can try again.
 - **The anon key** in the app is public by design. It grants nothing beyond what row-level security allows.
 - **The bot API** uses a single bearer token that maps to one configured user, and writes with Supabase's service role key, which bypasses row-level security. So the API handlers themselves limit every query to that user. The token is compared in constant time.
 
@@ -380,14 +381,15 @@ app/                    Screens (Expo Router: one file per route)
   brew/                 Detail, new, edit
 components/             BrewForm, RadarChart, StarRating, SliderInput, icons
 lib/
-  brews.ts              Data access: the only place that queries Supabase
+  brews.ts              Data access: the only place that queries Supabase for brews
+  account.ts            Account deletion
   brewQueries.ts        TanStack Query hooks used by screens
   brewList.ts           Search, filter, sort for My Brews
   analytics.ts          Stats and averages
   form.ts               Form values → save payload, with validation
   brewInput.ts          API input validation
   photos.ts             Resize before upload
-  storage.ts            Photo bucket and path helpers
+  storage.ts            Photo bucket name
   supabase.ts           Supabase client
   theme.ts              Color and shadow tokens
 api/brews/              Vercel functions: index.ts (list, create), [id].ts (get, update, delete)
