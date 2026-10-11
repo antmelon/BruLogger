@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from '
 import { useRouter } from 'expo-router';
 import { colors, shadows } from '../lib/theme';
 import { useInstallPrompt } from '../lib/install';
+import { LegalLinks } from '../components/LegalLinks';
 import { CoffeeIcon, StarIcon, SearchIcon } from '../components/icons';
 
 const FEATURES = [
@@ -89,6 +90,7 @@ export default function LandingScreen() {
       </View>
 
       <Text style={styles.footer}>BruLogger — Coffee Journal</Text>
+      <LegalLinks />
     </ScrollView>
   );
 }
@@ -225,5 +227,6 @@ const styles = StyleSheet.create({
   footer: {
     fontSize: 12,
     color: colors.textLight,
+    marginBottom: 8,
   },
 });

@@ -22,7 +22,8 @@ Env: `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (read in `li
 
 ## Layout
 
-- `app/`: Expo Router routes. `_layout.tsx` is the auth gate: it redirects between the landing page (`index.tsx`), `(auth)/login`, and `(tabs)` based on the Supabase session. `auth/callback.tsx` finishes the web OAuth redirect.
+- `app/`: Expo Router routes. `_layout.tsx` is the auth gate: on every route change it asks `authRedirect` (`lib/authGate.ts`, unit-tested) whether to send the user to `(auth)/login` or `(tabs)`. Signed out, only the landing page (`index.tsx`), sign-in, `auth/callback.tsx` (finishes the web OAuth redirect) and `(legal)` are reachable. A new public page needs adding there.
+- `app/(legal)/`: the privacy policy and terms (`/privacy`, `/terms`), public whether signed in or not. The App Store listing links to https://brulogger.com/privacy. Keep the policy true to what the app does: before shipping anything that collects something new (crash reports, AI photo parsing, another sign-in provider) or adds a service provider, update it and its date. Linked from the landing footer, the sign-in screen and Profile (`components/LegalLinks.tsx`). Contact addresses are `privacy@` and `support@brulogger.com`.
 - `app/(tabs)/`: My Brews list (search/filter/sort client-side), Analytics, Profile.
 - `app/brew/`: detail `[id].tsx`, `new.tsx`, `edit/[id].tsx`. New and edit both render `components/BrewForm.tsx`.
 - `lib/brews.ts`: the only data-access layer (CRUD + photo upload/delete). Screens never call `supabase.from` directly.

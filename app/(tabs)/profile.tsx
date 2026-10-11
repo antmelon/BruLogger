@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { deleteAccount } from '../../lib/account';
 import { useInstallPrompt } from '../../lib/install';
 import { ratingLabel } from '../../lib/a11y';
+import { LegalLinks } from '../../components/LegalLinks';
 import { brewStats } from '../../lib/analytics';
 import { useBrews } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
@@ -119,6 +120,10 @@ export default function ProfileScreen() {
           ? <ActivityIndicator color={colors.error} />
           : <Text style={styles.deleteAccountText}>Delete Account</Text>}
       </TouchableOpacity>
+
+      <View style={styles.legal}>
+        <LegalLinks />
+      </View>
     </ScrollView>
   );
 }
@@ -210,4 +215,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteAccountText: { color: colors.error, fontSize: 15, fontWeight: '600' },
+
+  legal: { marginTop: 24 },
 });
