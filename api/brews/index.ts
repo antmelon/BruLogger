@@ -1,6 +1,7 @@
 import { parseBrewInput } from '../../lib/brewInput';
 import {
-  authorize, Context, error, isDryRun, json, parsePhoto, Photo, readJsonObject, removePhoto, uploadPhoto,
+  authorize, Context, error, isDryRun, json, parsePhoto, Photo, readJsonObject, removePhoto,
+  uploadPhoto, reportError, withErrorReports,
 } from '../../server/api';
 
 // HTTP API for logging brews without the app (used by the Hermes Telegram bot). Auth and shared
@@ -13,7 +14,7 @@ import {
 //                                          Idempotency-Key header: a repeat of the same key
 //                                          returns the brew already saved (200, replayed: true)
 
-export async function GET(request: Request) {
+export const GET = withErrorReports(async (request: Request) => {
   const ctx = authorize(request);
   if (ctx instanceof Response) return ctx;
 
@@ -40,24 +41,24 @@ export async function GET(request: Request) {
 
   const { data, error: dbError } = await query;
   if (dbError) {
-    console.error('api/brews GET:', dbError);
+    await reportError('api/brews GET', dbError);
     return error(500, 'Failed to load brews.');
   }
   return json({ brews: data });
-}
+});
 
 /** The user's brew saved under this idempotency key, null if none, or an error Response. */
 async function findByIdempotencyKey(ctx: Context, key: string) {
   const { data, error: dbError } = await ctx.db
     .from('brews').select('*').eq('user_id', ctx.userId).eq('idempotency_key', key).maybeSingle();
   if (dbError) {
-    console.error('api/brews idempotency lookup:', dbError);
+    await reportError('api/brews idempotency lookup', dbError);
     return error(500, 'Failed to save brew.');
   }
   return data;
 }
 
-export async function POST(request: Request) {
+export const POST = withErrorReports(async (request: Request) => {
   const ctx = authorize(request);
   if (ctx instanceof Response) return ctx;
 
@@ -109,8 +110,8 @@ export async function POST(request: Request) {
       const saved = await findByIdempotencyKey(ctx, idempotencyKey);
       if (saved && !(saved instanceof Response)) return json({ brew: saved, replayed: true });
     }
-    console.error('api/brews insert:', dbError);
+    await reportError('api/brews insert', dbError);
     return error(500, 'Failed to save brew.');
   }
   return json({ brew: data }, 201);
-}
+});
