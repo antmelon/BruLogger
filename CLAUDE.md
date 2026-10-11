@@ -9,12 +9,12 @@ Domain glossary: @CONTEXT.md
 ```sh
 npm test            # jest (jest-expo preset), tests live in __tests__/
 npm run typecheck   # tsc --noEmit (strict)
-npm run lint        # expo lint (ESLint 9 flat config: eslint.config.js)
+npm run lint        # eslint . (ESLint 9 flat config: eslint.config.js). Not `expo lint`: it only lints app/ and components/
 npm run web         # dev server for the web build
 npx expo export --platform web   # production web bundle -> dist/ (good smoke test that everything compiles)
 ```
 
-Run `npm test && npm run typecheck && npm run lint` before calling a change done.
+Run `npm test && npm run typecheck && npm run lint` before calling a change done. CI (`.github/workflows/ci.yml`, GitHub Actions on Node 24) runs the same checks plus the web export on every pull request and push to `main`, with lint at `--max-warnings 0`, so fix warnings too. `main` has no branch protection, so a push to main isn't blocked by a failing run: check it with `gh run list`.
 
 `sharp` (devDependency, used only by `scripts/generate-icon.js`) fails `npm ci` on machines with a system libvips installed (e.g. Arch, where `appstream` pulls it in): it tries to build from source against it. Fix with `SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm ci`.
 

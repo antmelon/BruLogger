@@ -1,5 +1,7 @@
 # BruLogger
 
+[![CI](https://github.com/antmelon/BruLogger/actions/workflows/ci.yml/badge.svg)](https://github.com/antmelon/BruLogger/actions/workflows/ci.yml)
+
 A personal coffee journal. Log every brew (the coffee, the recipe, how it tasted), rate it, add a photo, and see how your taste changes over time. You can also log brews by messaging a Telegram bot.
 
 Live at **[brulogger.vercel.app](https://brulogger.vercel.app)**. The same codebase runs on iOS, Android and the web.
@@ -310,9 +312,11 @@ Notes for running on a phone:
 ```sh
 npm test            # Jest
 npm run typecheck   # TypeScript, strict
-npm run lint        # expo lint (ESLint 9)
+npm run lint        # ESLint 9 over the whole repo
 npx expo export --platform web   # production web build into dist/
 ```
+
+GitHub Actions runs all of these on every pull request and every push to `main` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), and fails on any lint warning.
 
 The tests cover the pure helpers (list filtering, stats, form parsing, input validation, photo sizing), the data-access layer and the API handlers, with Supabase mocked. There are no component tests; screens are kept thin so the logic lives in tested modules.
 
