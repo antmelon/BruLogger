@@ -5,17 +5,18 @@ import { Session } from '@supabase/supabase-js';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryClient, useAppStateFocus } from '../lib/brewQueries';
+import { authRedirect } from '../lib/authGate';
 import { colors } from '../lib/theme';
 import { ArrowLeftIcon } from '../components/icons';
 
-function HomeButton() {
+function HomeButton({ to, label }: { to: '/(tabs)' | '/'; label: string }) {
   const router = useRouter();
   return (
     <TouchableOpacity
-      onPress={() => router.replace('/(tabs)')}
+      onPress={() => router.replace(to)}
       style={styles.homeButton}
       role="button"
-      aria-label="Back to My Brews"
+      aria-label={label}
     >
       <ArrowLeftIcon color={colors.primary} strokeWidth={2} />
     </TouchableOpacity>
@@ -25,15 +26,20 @@ function HomeButton() {
 /**
  * Header options for the screens stacked over the tabs. A screen opened with nothing behind it
  * (a reload, a shared link, Android reopening the installed web app) gets no back button, and the
- * installed web app has no browser back button either, so it gets one that goes to My Brews.
+ * installed web app has no browser back button either, so it gets one that goes to My Brews. The
+ * public legal pages go to the landing page instead, which sends signed-in users on to My Brews.
  */
-function stackedScreen(title: string) {
+function stackedScreen(title: string, home: 'brews' | 'landing' = 'brews') {
   return ({ navigation }: { navigation: { canGoBack(): boolean } }) => ({
     headerShown: true,
     title,
     headerTintColor: colors.primary,
     headerBackButtonDisplayMode: 'minimal' as const,
-    headerLeft: navigation.canGoBack() ? undefined : () => <HomeButton />,
+    headerLeft: navigation.canGoBack()
+      ? undefined
+      : () => (home === 'brews'
+        ? <HomeButton to="/(tabs)" label="Back to My Brews" />
+        : <HomeButton to="/" label="Back to BruLogger" />),
   });
 }
 
@@ -58,16 +64,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (session === undefined) return; // still loading
-
-    const inAuth = segments[0] === '(auth)';
-    const inCallback = segments[0] === 'auth'; // /auth/callback
-    const inLanding = (segments as string[]).length === 0; // root index (landing page)
-
-    if (!session && !inAuth && !inCallback && !inLanding) {
-      router.replace('/(auth)/login');
-    } else if (session && (inAuth || inLanding)) {
-      router.replace('/(tabs)');
-    }
+    const target = authRedirect(segments, !!session);
+    if (target) router.replace(target);
   }, [session, segments, router]);
 
   if (session === undefined) return null;
@@ -81,6 +79,8 @@ export default function RootLayout() {
         <Stack.Screen name="brew/[id]" options={stackedScreen('Brew Details')} />
         <Stack.Screen name="brew/new" options={stackedScreen('Log a Brew')} />
         <Stack.Screen name="brew/edit/[id]" options={stackedScreen('Edit Brew')} />
+        <Stack.Screen name="(legal)/privacy" options={stackedScreen('Privacy Policy', 'landing')} />
+        <Stack.Screen name="(legal)/terms" options={stackedScreen('Terms of Service', 'landing')} />
         <Stack.Screen name="auth/callback" />
       </Stack>
     </QueryClientProvider>

@@ -98,6 +98,8 @@ flowchart TD
 
 Logging and editing a brew use the same form (`components/BrewForm.tsx`).
 
+The [privacy policy](https://brulogger.com/privacy) and [terms](https://brulogger.com/terms) (`app/(legal)/`) are public whether you're signed in or not. They're linked from the landing page, the sign-in screen and Profile.
+
 ### Data loading
 
 Screens never query Supabase themselves. They use the hooks in `lib/brewQueries.ts`, which wrap the data-access functions in `lib/brews.ts`:
@@ -426,11 +428,13 @@ app/                    Screens (Expo Router: one file per route)
   (auth)/login.tsx      Google sign-in
   auth/callback.tsx     Finishes web sign-in
   (tabs)/               My Brews, Analytics, Profile
+  (legal)/              Privacy policy and terms (public)
   brew/                 Detail, new, edit
-components/             BrewForm, RadarChart, StarRating, SliderInput, icons
+components/             BrewForm, RadarChart, StarRating, SliderInput, LegalPage, icons
 lib/
   brews.ts              Data access: the only place that queries Supabase for brews
   account.ts            Account deletion
+  authGate.ts           Which screens need sign-in (used by the root layout)
   install.ts            Install button for the web app
   a11y.ts               What screen readers say for ratings, cards and charts
   brewQueries.ts        TanStack Query hooks used by screens

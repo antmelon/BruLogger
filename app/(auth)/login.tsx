@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
 import { colors, shadows } from '../../lib/theme';
 import { CoffeeIcon } from '../../components/icons';
+import { SignInConsent } from '../../components/LegalLinks';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -60,6 +61,7 @@ export default function LoginScreen() {
           <Text style={styles.buttonText}>Continue with Google</Text>
         </TouchableOpacity>
         {error ? <Text style={styles.error} role="alert">{error}</Text> : null}
+        <SignInConsent />
       </View>
     </View>
   );
