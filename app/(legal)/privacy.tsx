@@ -8,7 +8,7 @@ const UPDATED = 'October 11, 2026';
 
 const INTRO = [
   'BruLogger is a coffee journal. This policy explains what BruLogger stores about you, why, who else handles it, and how to delete it.',
-  'BruLogger is made by an independent developer in the United States ("we"). If you have a question about your data, email privacy@brulogger.com.',
+  'BruLogger is made by Anthony Longo, an independent developer in the United States ("we"). If you have a question about your data, email privacy@brulogger.com.',
 ];
 
 const SECTIONS: LegalSection[] = [
