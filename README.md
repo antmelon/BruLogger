@@ -107,6 +107,15 @@ Screens never query Supabase themselves. They use the hooks in `lib/brewQueries.
 - **Writes.** Creating, editing and deleting update the cache directly. When a brew's photo is replaced or the brew is deleted, the old photo file is deleted, but only after the database write succeeds.
 - **Photos.** A picked photo is shrunk before upload (`lib/photos.ts`): longest edge 1600 px, re-encoded as JPEG at 0.8 quality. HEIC and PNG photos get converted along the way.
 
+### Installing the web app (Android)
+
+Until there's a Play Store version, Android users install the website as an app. It opens full screen from the home screen, with its own icon and splash screen.
+
+- **`public/manifest.webmanifest`** names the app and lists its icons. The icons in `public/icons/` come from `scripts/generate-icon.js`, like the native ones. The maskable icon keeps the cup inside the area every launcher shape leaves visible.
+- **`public/index.html`** is the page template. Expo uses it in place of its default one. It links the manifest and registers the service worker. It also catches Chrome's install offer (`beforeinstallprompt`), so the landing page and Profile can show an **Install** button (`lib/install.ts`). The button only appears in browsers that offer installation (Chrome, Edge, Samsung Internet).
+- **`public/sw.js`** is a service worker that does one thing: when a page can't load without a connection, it shows `public/offline.html` instead of the browser's error page. It caches nothing else. Brews live in Supabase anyway, and cached app files could keep serving an old version after a deploy.
+- **No dead ends.** The installed app has no browser back button. So a brew screen opened with nothing behind it (a reload, or Android reopening the app) shows a back arrow to My Brews.
+
 ### Sign-in
 
 Sign-in is Google-only, through Supabase Auth with the PKCE flow. The redirect carries a one-time code that only the device that started the sign-in can exchange, never the tokens themselves.
@@ -383,6 +392,7 @@ components/             BrewForm, RadarChart, StarRating, SliderInput, icons
 lib/
   brews.ts              Data access: the only place that queries Supabase for brews
   account.ts            Account deletion
+  install.ts            Install button for the web app
   brewQueries.ts        TanStack Query hooks used by screens
   brewList.ts           Search, filter, sort for My Brews
   analytics.ts          Stats and averages
@@ -394,6 +404,7 @@ lib/
   theme.ts              Color and shadow tokens
 api/brews/              Vercel functions: index.ts (list, create), [id].ts (get, update, delete)
 server/api.ts           Shared API helpers: auth, responses, photos
+public/                 Copied into the web build: page template, web app manifest and icons, service worker, offline page
 types/                  Generated database types and the app's Brew types
 supabase/migrations/    Database schema
 integrations/hermes/    The Telegram agent's skill

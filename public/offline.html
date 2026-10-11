@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Served by public/sw.js when a page can't load without a connection. Self-contained:
+         nothing else is cached, so no external files. -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F5EFE6" />
+    <title>BruLogger: offline</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+        background: #F5EFE6;
+        color: #4A3728;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        text-align: center;
+      }
+      main { max-width: 340px; }
+      h1 { font-size: 22px; margin: 20px 0 8px; }
+      p { color: #6B5B4E; font-size: 15px; line-height: 1.5; margin: 0 0 28px; }
+      button {
+        background: #8B5A2B;
+        color: #FFFFFF;
+        border: 0;
+        border-radius: 12px;
+        padding: 14px 32px;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg width="72" height="72" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="16" fill="#4A3728" />
+        <path d="M 18 26 L 21 48 Q 21.5 51 24 51 L 40 51 Q 42.5 51 43 48 L 46 26 Z" fill="#F5EFE6" />
+        <path d="M 46 32 Q 52 32 52 38 Q 52 44 46 44" fill="none" stroke="#F5EFE6" stroke-width="4" stroke-linecap="round" />
+        <rect x="16" y="23" width="32" height="5" rx="2.5" fill="#F5EFE6" />
+        <path d="M 26 18 Q 24 14 26 10" fill="none" stroke="#F5EFE6" stroke-width="2.5" stroke-linecap="round" opacity="0.8" />
+        <path d="M 32 16 Q 30 12 32 8" fill="none" stroke="#F5EFE6" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+        <path d="M 38 18 Q 36 14 38 10" fill="none" stroke="#F5EFE6" stroke-width="2.5" stroke-linecap="round" opacity="0.8" />
+      </svg>
+      <h1>You're offline</h1>
+      <p>BruLogger needs a connection to load your brews. Check your connection and try again.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>
