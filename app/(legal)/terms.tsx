@@ -5,7 +5,7 @@ import LegalPage, { LegalSection } from '../../components/LegalPage';
 const UPDATED = 'October 11, 2026';
 
 const INTRO = [
-  'These terms are the agreement between you and the independent developer who makes BruLogger ("we"). By using BruLogger, you agree to them. If you don\'t agree, please don\'t use it.',
+  'These terms are the agreement between you and Anthony Longo, the independent developer who makes BruLogger ("we"). By using BruLogger, you agree to them. If you don\'t agree, please don\'t use it.',
 ];
 
 const SECTIONS: LegalSection[] = [
