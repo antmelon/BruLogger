@@ -12,7 +12,7 @@ export default function EditBrewScreen() {
   const updateMutation = useUpdateBrew();
 
   async function handleSubmit(updated: BrewInsert) {
-    await updateMutation.mutateAsync({ id, brew: updated, previousPhotoUrl: brew?.photo_url ?? null });
+    await updateMutation.mutateAsync({ id, brew: updated, previousPhotoPath: brew?.photo_path ?? null });
     router.replace(`/brew/${id}`);
   }
 

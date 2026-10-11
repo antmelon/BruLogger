@@ -4,7 +4,7 @@ import {
   TouchableOpacity, Alert, Platform, Image, Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useBrew, useDeleteBrew } from '../../lib/brewQueries';
+import { useBrew, useDeleteBrew, usePhotoUrl } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
@@ -23,13 +23,14 @@ export default function BrewDetailScreen() {
   const router = useRouter();
   const { data: brew, isPending, isError } = useBrew(id);
   const deleteMutation = useDeleteBrew();
+  const { data: photoUrl } = usePhotoUrl(brew?.photo_path);
   const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
-    if (brew?.photo_url) {
+    if (photoUrl) {
       const maxWidth = Math.min(Dimensions.get('window').width - 40, 560);
       const maxHeight = 320;
-      Image.getSize(brew.photo_url, (w, h) => {
+      Image.getSize(photoUrl, (w, h) => {
         const aspectRatio = w / h;
         const naturalHeight = maxWidth / aspectRatio;
         if (naturalHeight > maxHeight) {
@@ -39,7 +40,7 @@ export default function BrewDetailScreen() {
         }
       });
     }
-  }, [brew?.photo_url]);
+  }, [photoUrl]);
 
   async function performDelete() {
     if (!brew) return;
@@ -88,9 +89,9 @@ export default function BrewDetailScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Photo */}
-      {brew.photo_url && photoSize !== null ? (
+      {photoUrl && photoSize !== null ? (
         <View style={styles.heroPhotoContainer}>
-          <Image source={{ uri: brew.photo_url }} style={[styles.heroPhoto, photoSize]} resizeMode="cover" />
+          <Image source={{ uri: photoUrl }} style={[styles.heroPhoto, photoSize]} resizeMode="cover" />
         </View>
       ) : null}
 

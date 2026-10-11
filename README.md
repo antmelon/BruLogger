@@ -133,12 +133,12 @@ On the web, the browser returns to `/auth/callback` and supabase-js does the exc
 
 ## Data model
 
-Each Brew is one row in `public.brews`, owned by a Supabase Auth user. A photo is a file in the public `brew-photos` storage bucket, stored under the owner's user ID and linked by its public URL. For what each domain term means, see the [glossary](CONTEXT.md).
+Each Brew is one row in `public.brews`, owned by a Supabase Auth user. A photo is a file in the private `brew-photos` storage bucket, stored under the owner's user ID; the brew keeps its storage path. For what each domain term means, see the [glossary](CONTEXT.md).
 
 ```mermaid
 erDiagram
   AUTH_USERS ||--o{ BREWS : owns
-  BREWS ||--o| PHOTO : "photo_url"
+  BREWS ||--o| PHOTO : "photo_path"
 
   AUTH_USERS {
     uuid id PK
@@ -165,7 +165,7 @@ erDiagram
     text general_notes
     numeric rating "1 to 5, half steps"
     jsonb flavor_profile "five axes, 1 to 5"
-    text photo_url
+    text photo_path "user_id/file"
     text idempotency_key "API saves only"
   }
 
@@ -189,7 +189,7 @@ The schema lives in [`supabase/migrations/`](supabase/migrations), and `types/da
 ## Security
 
 - **Row-level security** on `brews`: a signed-in user can read, create, update and delete only rows whose `user_id` is their own, and can't move a brew to another user.
-- **Storage policies** on `brew-photos`: users can upload, list and delete only files in their own folder. Photos are viewable by anyone who has the URL, which is what lets the app display them without signing every request.
+- **Private photos**: the `brew-photos` bucket isn't public. Storage policies let users upload, read and delete only files in their own folder, and the app displays a photo through a signed link that expires after an hour. The bucket only accepts images up to 5 MB.
 - **The anon key** in the app is public by design. It grants nothing beyond what row-level security allows.
 - **The bot API** uses a single bearer token that maps to one configured user, and writes with Supabase's service role key, which bypasses row-level security. So the API handlers themselves limit every query to that user. The token is compared in constant time.
 

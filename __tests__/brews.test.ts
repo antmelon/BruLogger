@@ -1,4 +1,4 @@
-import { getBrews, getBrew, createBrew, updateBrew, deleteBrew, deleteBrewPhoto } from '../lib/brews';
+import { getBrews, getBrew, createBrew, updateBrew, deleteBrew, deleteBrewPhoto, getPhotoUrl } from '../lib/brews';
 
 const mockOrder = jest.fn();
 const mockSingle = jest.fn();
@@ -10,13 +10,17 @@ const mockDelete = jest.fn();
 const mockFrom = jest.fn();
 const mockGetUser = jest.fn();
 const mockRemove = jest.fn();
+const mockCreateSignedUrl = jest.fn();
 
 jest.mock('../lib/supabase', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
     auth: { getUser: () => mockGetUser() },
     storage: {
-      from: () => ({ remove: (...args: unknown[]) => mockRemove(...args) }),
+      from: () => ({
+        remove: (...args: unknown[]) => mockRemove(...args),
+        createSignedUrl: (...args: unknown[]) => mockCreateSignedUrl(...args),
+      }),
     },
   },
 }));
@@ -137,14 +141,22 @@ describe('updateBrew', () => {
 });
 
 describe('deleteBrewPhoto', () => {
-  it('removes the storage path parsed from the public URL', async () => {
+  it('removes the photo at its storage path', async () => {
     mockRemove.mockResolvedValue({ error: null });
-    await deleteBrewPhoto('https://x.supabase.co/storage/v1/object/public/brew-photos/user-1/123.jpg');
+    await deleteBrewPhoto('user-1/123.jpg');
     expect(mockRemove).toHaveBeenCalledWith(['user-1/123.jpg']);
   });
+});
 
-  it('does nothing for URLs outside the brew-photos bucket', async () => {
-    await deleteBrewPhoto('https://example.com/other.jpg');
-    expect(mockRemove).not.toHaveBeenCalled();
+describe('getPhotoUrl', () => {
+  it('returns a signed link to the private photo, valid for an hour', async () => {
+    mockCreateSignedUrl.mockResolvedValue({ data: { signedUrl: 'https://x.supabase.co/signed/abc' }, error: null });
+    await expect(getPhotoUrl('user-1/123.jpg')).resolves.toBe('https://x.supabase.co/signed/abc');
+    expect(mockCreateSignedUrl).toHaveBeenCalledWith('user-1/123.jpg', 3600);
+  });
+
+  it('throws when the link cannot be created', async () => {
+    mockCreateSignedUrl.mockResolvedValue({ data: null, error: new Error('Object not found') });
+    await expect(getPhotoUrl('user-1/missing.jpg')).rejects.toThrow('Object not found');
   });
 });

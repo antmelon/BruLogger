@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { Brew, BrewInsert } from '../types';
-import { PHOTO_BUCKET, photoPathFromUrl } from './storage';
+import { PHOTO_BUCKET } from './storage';
 
 export async function getBrews(): Promise<Brew[]> {
   const { data, error } = await supabase
@@ -59,6 +59,7 @@ export async function deleteBrew(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Uploads a photo into the user's folder and returns its storage path (brews.photo_path). */
 export async function uploadBrewPhoto(localUri: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -84,14 +85,17 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
 
   const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(filename, body);
   if (error) throw error;
-
-  const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(filename);
-  return data.publicUrl;
+  return filename;
 }
 
-export async function deleteBrewPhoto(publicUrl: string): Promise<void> {
-  const path = photoPathFromUrl(publicUrl);
-  if (!path) return;
+/** A temporary link to a photo; the bucket is private. */
+export async function getPhotoUrl(path: string, expiresInSeconds = 3600): Promise<string> {
+  const { data, error } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, expiresInSeconds);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function deleteBrewPhoto(path: string): Promise<void> {
   const { error } = await supabase.storage.from(PHOTO_BUCKET).remove([path]);
   if (error) throw error;
 }

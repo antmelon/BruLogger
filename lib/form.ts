@@ -31,7 +31,7 @@ export interface BrewFormValues {
   generalNotes: string;
   rating: number; // 0 = unrated
   profile: FlavorProfile | null; // null = not scored
-  photoUrl: string | null;
+  photoPath: string | null; // the saved photo's storage path, if it is kept
 }
 
 export type BrewFormResult = { ok: true; value: BrewInsert } | { ok: false; error: string };
@@ -72,7 +72,7 @@ export function toBrewInsert(v: BrewFormValues): BrewFormResult {
       general_notes: optionalText(v.generalNotes),
       rating: v.rating || null,
       flavor_profile: v.profile,
-      photo_url: v.photoUrl,
+      photo_path: v.photoPath,
     },
   };
 }

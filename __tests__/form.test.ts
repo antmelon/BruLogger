@@ -31,7 +31,7 @@ const FORM: BrewFormValues = {
   coffeeName: 'Guji Hambela', roaster: '', origin: '', roastLevel: null, varietal: '',
   processingMethod: '', brewMethod: 'Pour Over', grindSize: '', waterTemp: '', dose: '',
   yieldG: '', brewTime: '', flavorNotes: '', generalNotes: '', rating: 0, profile: null,
-  photoUrl: null,
+  photoPath: null,
 };
 
 describe('toBrewInsert', () => {
@@ -42,7 +42,7 @@ describe('toBrewInsert', () => {
       value: expect.objectContaining({
         coffee_name: 'Guji Hambela', roaster: 'Onyx', origin: null, roast_level: null,
         varietal: null, processing_method: null, grind_size: null, flavor_notes: null,
-        general_notes: null, photo_url: null,
+        general_notes: null, photo_path: null,
       }),
     });
   });
@@ -70,6 +70,12 @@ describe('toBrewInsert', () => {
     const profile = { aromatics: 4, acidity: 3.5, sweetness: 4, aftertaste: 3, body: 2.5 };
     expect(toBrewInsert({ ...FORM, profile, rating: 4.5 })).toEqual({
       ok: true, value: expect.objectContaining({ flavor_profile: profile, rating: 4.5 }),
+    });
+  });
+
+  it('keeps an existing photo by its storage path', () => {
+    expect(toBrewInsert({ ...FORM, photoPath: 'user-1/123.jpg' })).toEqual({
+      ok: true, value: expect.objectContaining({ photo_path: 'user-1/123.jpg' }),
     });
   });
 });
