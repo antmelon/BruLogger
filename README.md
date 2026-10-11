@@ -406,6 +406,24 @@ flowchart LR
 
 `EXPO_PUBLIC_*` values are compiled into the web bundle at build time, so changing one needs a redeploy. The dev Supabase project is on the free plan and pauses after a week without use. If a preview fails with `ERR_NAME_NOT_RESOLVED`, restore the project from the Supabase dashboard.
 
+## Releasing the iOS app
+
+The iPhone app is built and submitted with [EAS](https://docs.expo.dev/eas/), Expo's cloud build service, so no Mac is needed. The project is [`@alongo0925/brulogger`](https://expo.dev/accounts/alongo0925/projects/brulogger). It's iPhone-only for now (`ios.supportsTablet: false`).
+
+```sh
+npx eas-cli build --platform ios --profile production   # cloud build, signed with EAS-managed Apple credentials
+npx eas-cli submit --platform ios --latest              # upload to App Store Connect (TestFlight, then review)
+npx eas-cli update --channel production --message "…"   # ship a JavaScript-only fix to installed apps
+npx eas-cli metadata:push                               # push the listing in store.config.json
+```
+
+- **Versions:** `version` in `app.json` is the version people see (1.0.0). EAS keeps the build number and increments it on every production build (`appVersionSource: remote`, `autoIncrement`).
+- **Over-the-air updates** (`expo-updates`): installed apps check for an update on launch and apply it on the next start. Updates only reach builds with the same `runtimeVersion`, which follows the app version (`policy: appVersion`). Anything that changes native code (a new native module, a config plugin, permissions) needs a new build, with `version` raised first. Otherwise a JavaScript update could reach a build that lacks the native code it needs.
+- **Build settings:** the `production` profile in `eas.json` uses the EAS `production` environment, whose variables are the same public values the website uses: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` and `EXPO_PUBLIC_SENTRY_DSN`. It also needs `SENTRY_AUTH_TOKEN` (a secret) to upload debug symbols to Sentry. Manage them with `npx eas-cli env:list` and `env:create`, or on expo.dev.
+- **iOS settings in `app.json`:** camera and photo library permission messages (no microphone), and `usesNonExemptEncryption: false`. The app only uses standard HTTPS encryption, which spares answering the export compliance question on every upload.
+
+The listing and the rest of the submission are in [`docs/app-store.md`](docs/app-store.md).
+
 ## Backups
 
 Supabase's free plan has no backups, and its paid backups leave out Storage files anyway. So a home server backs up production every night at 23:15:
@@ -465,6 +483,7 @@ lib/
   theme.ts              Color and shadow tokens
 api/brews/              Vercel functions: index.ts (list, create), [id].ts (get, update, delete)
 server/api.ts           Shared API helpers: auth, responses, photos
+eas.json                EAS build and submit profiles (iOS releases)
 store.config.json       App Store listing (EAS Metadata); docs/app-store.md covers the rest
 public/                 Copied into the web build: page template, web app manifest and icons, service worker, offline page
 types/                  Generated database types and the app's Brew types

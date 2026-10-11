@@ -55,6 +55,6 @@ The terms still require users to be 13 or older. That's about collecting childre
 ## Still to do before the first submission
 
 - **Sign in with Apple** (guideline 4.8: an app that offers Google sign-in must also offer Apple's or an equivalent). Then update the support page's "How do I sign in?" answer.
-- **iPad:** `app.json` has `ios.supportsTablet: true`, so App Store Connect also requires 13-inch iPad screenshots. Either keep iPad support (needs those screenshots and a check of the layout on iPad), or set it to `false`, which ships an iPhone app that iPads run scaled up.
+- **iPad:** decided 2026-10-11 to ship iPhone-only for now (`ios.supportsTablet: false`), so no iPad screenshots are needed and iPads run the iPhone app scaled up. Supporting iPad later means checking the layout on iPad and adding 13-inch iPad screenshots.
 - **Screenshots:** at least one set for 6.9-inch iPhones (1320 × 2868), up to 10, taken from a real build with good-looking sample brews: My Brews, a brew with its flavor radar, logging a brew, Analytics.
 - **Enter the App Review information and App Privacy answers** above, then run `eas metadata:push`.
