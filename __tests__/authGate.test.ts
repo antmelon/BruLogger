@@ -22,10 +22,11 @@ describe('authRedirect', () => {
     expect(authRedirect(['brew', 'new'], true)).toBeNull();
   });
 
-  it('lets anyone read the privacy policy and terms, signed in or not', () => {
+  it('lets anyone read the privacy policy, terms and support page, signed in or not', () => {
     for (const signedIn of [false, true]) {
-      expect(authRedirect(['(legal)', 'privacy'], signedIn)).toBeNull();
-      expect(authRedirect(['(legal)', 'terms'], signedIn)).toBeNull();
+      expect(authRedirect(['(public)', 'privacy'], signedIn)).toBeNull();
+      expect(authRedirect(['(public)', 'terms'], signedIn)).toBeNull();
+      expect(authRedirect(['(public)', 'support'], signedIn)).toBeNull();
     }
   });
 });

@@ -31,7 +31,7 @@ function HomeButton({ to, label }: { to: '/(tabs)' | '/'; label: string }) {
  * Header options for the screens stacked over the tabs. A screen opened with nothing behind it
  * (a reload, a shared link, Android reopening the installed web app) gets no back button, and the
  * installed web app has no browser back button either, so it gets one that goes to My Brews. The
- * public legal pages go to the landing page instead, which sends signed-in users on to My Brews.
+ * public pages go to the landing page instead, which sends signed-in users on to My Brews.
  */
 function stackedScreen(title: string, home: 'brews' | 'landing' = 'brews') {
   return ({ navigation }: { navigation: { canGoBack(): boolean } }) => ({
@@ -83,8 +83,9 @@ function RootLayout() {
         <Stack.Screen name="brew/[id]" options={stackedScreen('Brew Details')} />
         <Stack.Screen name="brew/new" options={stackedScreen('Log a Brew')} />
         <Stack.Screen name="brew/edit/[id]" options={stackedScreen('Edit Brew')} />
-        <Stack.Screen name="(legal)/privacy" options={stackedScreen('Privacy Policy', 'landing')} />
-        <Stack.Screen name="(legal)/terms" options={stackedScreen('Terms of Service', 'landing')} />
+        <Stack.Screen name="(public)/privacy" options={stackedScreen('Privacy Policy', 'landing')} />
+        <Stack.Screen name="(public)/terms" options={stackedScreen('Terms of Service', 'landing')} />
+        <Stack.Screen name="(public)/support" options={stackedScreen('Support', 'landing')} />
         <Stack.Screen name="auth/callback" />
       </Stack>
     </QueryClientProvider>

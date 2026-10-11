@@ -1,0 +1,65 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "copyright": "2026 Anthony Longo",
+    "categories": [
+      "FOOD_AND_DRINK",
+      "LIFESTYLE"
+    ],
+    "info": {
+      "en-US": {
+        "title": "BruLogger: Coffee Journal",
+        "subtitle": "Log, rate & dial in every brew",
+        "description": "BruLogger is a simple journal for the coffee you make at home. Log each brew, rate how it tasted, and learn what you like, so your next cup is better than your last.\n\nLOG EVERY BREW\n• Pour over, espresso, AeroPress, French press, cold brew and more\n• The coffee: name, roaster, origin, roast level, varietal and process\n• The recipe: grind size, dose, yield, water temperature and brew time\n• A photo of the cup, the bag or your setup\n\nTASTE AND RATE\n• Star ratings in half steps\n• An optional flavor profile (aromatics, acidity, sweetness, aftertaste and body), drawn as a radar chart\n• Flavor notes, and anything else worth remembering for next time\n\nSEE WHAT WORKS\n• Search your whole history and filter by method, roast or rating\n• Follow your ratings over time\n• See your favorite methods and roasts, and your average flavor profile\n\nPRIVATE BY DESIGN\n• Your brews and photos are visible only to you\n• No ads and no tracking\n• Delete your account and everything in it at any time, right from the app\n\nON YOUR PHONE AND THE WEB\nSign in at brulogger.com with the same account and your brews are there too.\n\nBruLogger is free.",
+        "keywords": [
+          "pour over",
+          "espresso",
+          "aeropress",
+          "french press",
+          "v60",
+          "chemex",
+          "tasting notes",
+          "barista",
+          "beans",
+          "roast",
+          "grind",
+          "recipe"
+        ],
+        "promoText": "Dial in your coffee at home: log each brew's recipe, rate how it tasted, and see what works. Free, private and ad-free.",
+        "marketingUrl": "https://brulogger.com",
+        "supportUrl": "https://brulogger.com/support",
+        "privacyPolicyUrl": "https://brulogger.com/privacy"
+      }
+    },
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gamblingSimulated": "NONE",
+      "gunsOrOtherWeapons": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "koreaAgeRatingOverride": "NONE",
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "advertising": false,
+      "ageAssurance": false,
+      "gambling": false,
+      "healthOrWellnessTopics": false,
+      "kidsAgeBand": null,
+      "lootBox": false,
+      "messagingAndChat": false,
+      "parentalControls": false,
+      "unrestrictedWebAccess": false,
+      "userGeneratedContent": false
+    },
+    "release": {
+      "automaticRelease": false
+    }
+  }
+}

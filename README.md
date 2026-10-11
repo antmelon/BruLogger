@@ -99,7 +99,7 @@ flowchart TD
 
 Logging and editing a brew use the same form (`components/BrewForm.tsx`).
 
-The [privacy policy](https://brulogger.com/privacy) and [terms](https://brulogger.com/terms) (`app/(legal)/`) are public whether you're signed in or not. They're linked from the landing page, the sign-in screen and Profile.
+The [privacy policy](https://brulogger.com/privacy), [terms](https://brulogger.com/terms) and [support page](https://brulogger.com/support) (`app/(public)/`) are open whether you're signed in or not. They're linked from the landing page, the sign-in screen and Profile.
 
 ### Data loading
 
@@ -149,7 +149,7 @@ Production errors from the app (iOS, Android and web) and from the API go to [Se
 
 - **Errors only.** No performance tracing, session tracking, session replay, screenshots or view hierarchy.
 - **No personal data.** No name, email or IP address is attached, and the Sentry projects are set not to store IP addresses.
-- **Secrets are scrubbed before sending.** Signed photo tokens and sign-in codes or tokens are replaced with `[Filtered]` anywhere in a report, including breadcrumb URLs and error messages (`scrubReport` in `lib/crashReports.ts`, unit-tested).
+- **Secrets and IDs are scrubbed before sending.** Signed photo tokens and sign-in codes or tokens become `[Filtered]`, and account and brew IDs become `[id]`, anywhere in a report: breadcrumb URLs, error messages, the request URL (`scrubReport` in `lib/crashReports.ts`, unit-tested). So a report can't be tied to a person.
 - **Readable stack traces.** The web build uploads its source maps (see Environments and deployment).
 
 Reporting is on only where a DSN is set (Vercel Production), so local development and preview deploys report nothing. In the API, `reportError` logs a failure and reports it, and `withErrorReports` turns an unexpected exception in a handler into a reported 500.
@@ -443,7 +443,7 @@ app/                    Screens (Expo Router: one file per route)
   (auth)/login.tsx      Google sign-in
   auth/callback.tsx     Finishes web sign-in
   (tabs)/               My Brews, Analytics, Profile
-  (legal)/              Privacy policy and terms (public)
+  (public)/             Privacy policy, terms, support (no sign-in needed)
   brew/                 Detail, new, edit
 components/             BrewForm, RadarChart, StarRating, SliderInput, LegalPage, icons
 lib/
@@ -465,6 +465,7 @@ lib/
   theme.ts              Color and shadow tokens
 api/brews/              Vercel functions: index.ts (list, create), [id].ts (get, update, delete)
 server/api.ts           Shared API helpers: auth, responses, photos
+store.config.json       App Store listing (EAS Metadata); docs/app-store.md covers the rest
 public/                 Copied into the web build: page template, web app manifest and icons, service worker, offline page
 types/                  Generated database types and the app's Brew types
 supabase/migrations/    Database schema
