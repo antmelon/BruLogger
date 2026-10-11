@@ -56,10 +56,10 @@ export default function LoginScreen() {
         <Text style={styles.title}>Coffee Journal</Text>
         <Text style={styles.subtitle}>Track, rate, and remember every brew.</Text>
 
-        <TouchableOpacity style={styles.button} onPress={signInWithGoogle} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.button} onPress={signInWithGoogle} activeOpacity={0.85} role="button">
           <Text style={styles.buttonText}>Continue with Google</Text>
         </TouchableOpacity>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error} role="alert">{error}</Text> : null}
       </View>
     </View>
   );

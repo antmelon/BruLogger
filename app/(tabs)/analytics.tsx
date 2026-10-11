@@ -8,6 +8,7 @@ import { colors, shadows } from '../../lib/theme';
 import { avgFlavorProfile, brewStats, countBy } from '../../lib/analytics';
 import { Brew, FlavorProfile } from '../../types';
 import RadarChart from '../../components/RadarChart';
+import { ratingTrendLabel } from '../../lib/a11y';
 
 // ─── Bar chart (horizontal) ──────────────────────────────────────────────────
 
@@ -16,7 +17,12 @@ function HorizBarChart({ data }: { data: { label: string; value: number }[] }) {
   return (
     <View style={{ gap: 10 }}>
       {data.map((d) => (
-        <View key={d.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View
+          key={d.label}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+          accessible
+          aria-label={`${d.label}: ${d.value} ${d.value === 1 ? 'brew' : 'brews'}`}
+        >
           <Text style={barStyles.label} numberOfLines={1}>{d.label}</Text>
           <View style={barStyles.track}>
             <View style={[barStyles.fill, { flex: d.value / max }]} />
@@ -33,7 +39,7 @@ const barStyles = StyleSheet.create({
   label: { width: 96, fontSize: 13, color: colors.textMuted },
   track: { flex: 1, height: 18, flexDirection: 'row', backgroundColor: colors.background, borderRadius: 6, overflow: 'hidden' },
   fill: { backgroundColor: colors.primary, borderRadius: 6 },
-  count: { width: 22, fontSize: 13, fontWeight: '700', color: colors.textDark, textAlign: 'right' },
+  count: { minWidth: 22, fontSize: 13, fontWeight: '700', color: colors.textDark, textAlign: 'right' },
 });
 
 // ─── Rating trend chart (SVG line chart) ────────────────────────────────────
@@ -72,45 +78,47 @@ function RatingTrendChart({ brews, width }: { brews: Brew[]; width: number }) {
   const yLabels = [1, 3, 5];
 
   return (
-    <Svg width={width} height={H}>
-      {/* Grid lines */}
-      {yLabels.map((r) => {
-        const y = PAD.top + (1 - (r - 1) / 4) * chartH;
-        return (
-          <SvgLine key={r} x1={PAD.left} y1={y} x2={width - PAD.right} y2={y}
-            stroke={colors.border} strokeWidth={1} />
-        );
-      })}
-      {/* Y labels */}
-      {yLabels.map((r) => {
-        const y = PAD.top + (1 - (r - 1) / 4) * chartH;
-        return (
-          <SvgText key={r} x={PAD.left - 4} y={y + 4} fontSize={10}
-            fontFamily={Platform.select({ web: 'system-ui, -apple-system, sans-serif', default: undefined })}
-            fill={colors.textLight} textAnchor="end">{r}</SvgText>
-        );
-      })}
-      {/* Trend line */}
-      <Path d={linePath} stroke={colors.accent} strokeWidth={2} fill="none" strokeLinejoin="round" />
-      {/* Dots */}
-      {points.map((p, i) => (
-        <Circle key={i} cx={p.x} cy={p.y} r={4} fill={colors.primary} />
-      ))}
-      {/* First and last date labels */}
-      {[points[0], points[points.length - 1]].map((p, i) => (
-        <SvgText
-          key={i}
-          x={i === 0 ? PAD.left : width - PAD.right}
-          y={H - 2}
-          fontSize={10}
-          fontFamily="system-ui, -apple-system, sans-serif"
-          fill={colors.textLight}
-          textAnchor={i === 0 ? 'start' : 'end'}
-        >
-          {p.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </SvgText>
-      ))}
-    </Svg>
+    <View accessible role="img" aria-label={ratingTrendLabel(rated.map((b) => b.rating))}>
+      <Svg width={width} height={H} aria-hidden>
+        {/* Grid lines */}
+        {yLabels.map((r) => {
+          const y = PAD.top + (1 - (r - 1) / 4) * chartH;
+          return (
+            <SvgLine key={r} x1={PAD.left} y1={y} x2={width - PAD.right} y2={y}
+              stroke={colors.border} strokeWidth={1} />
+          );
+        })}
+        {/* Y labels */}
+        {yLabels.map((r) => {
+          const y = PAD.top + (1 - (r - 1) / 4) * chartH;
+          return (
+            <SvgText key={r} x={PAD.left - 4} y={y + 4} fontSize={10}
+              fontFamily={Platform.select({ web: 'system-ui, -apple-system, sans-serif', default: undefined })}
+              fill={colors.textLight} textAnchor="end">{r}</SvgText>
+          );
+        })}
+        {/* Trend line */}
+        <Path d={linePath} stroke={colors.accent} strokeWidth={2} fill="none" strokeLinejoin="round" />
+        {/* Dots */}
+        {points.map((p, i) => (
+          <Circle key={i} cx={p.x} cy={p.y} r={4} fill={colors.primary} />
+        ))}
+        {/* First and last date labels */}
+        {[points[0], points[points.length - 1]].map((p, i) => (
+          <SvgText
+            key={i}
+            x={i === 0 ? PAD.left : width - PAD.right}
+            y={H - 2}
+            fontSize={10}
+            fontFamily="system-ui, -apple-system, sans-serif"
+            fill={colors.textLight}
+            textAnchor={i === 0 ? 'start' : 'end'}
+          >
+            {p.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </SvgText>
+        ))}
+      </Svg>
+    </View>
   );
 }
 
@@ -161,18 +169,19 @@ export default function AnalyticsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    // Focusable so keyboard users can scroll it: nothing on this screen is a control to tab to
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} focusable aria-label="Analytics">
       {/* Summary tiles */}
       <View style={styles.tilesRow}>
-        <View style={styles.tile}>
+        <View style={styles.tile} accessible aria-label={`Total brews: ${brews.length}`}>
           <Text style={styles.tileValue}>{brews.length}</Text>
           <Text style={styles.tileLabel}>Total Brews</Text>
         </View>
-        <View style={styles.tile}>
+        <View style={styles.tile} accessible aria-label={`Average rating: ${avgRating ? avgRating.toFixed(1) : 'none yet'}`}>
           <Text style={styles.tileValue}>{avgRating ? avgRating.toFixed(1) : '—'}</Text>
           <Text style={styles.tileLabel}>Avg Rating</Text>
         </View>
-        <View style={styles.tile}>
+        <View style={styles.tile} accessible aria-label={`Favorite method: ${topMethod ?? 'none yet'}`}>
           <Text style={styles.tileValueSmall} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{topMethod ?? '—'}</Text>
           <Text style={styles.tileLabel}>Fav Method</Text>
         </View>
@@ -180,20 +189,20 @@ export default function AnalyticsScreen() {
 
       {/* Rating trend */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Rating Over Time</Text>
+        <Text style={styles.sectionTitle} role="heading">Rating Over Time</Text>
         <RatingTrendChart brews={brews} width={chartWidth} />
       </View>
 
       {/* Method distribution */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Brews by Method</Text>
+        <Text style={styles.sectionTitle} role="heading">Brews by Method</Text>
         <HorizBarChart data={methodCounts} />
       </View>
 
       {/* Roast level distribution */}
       {roastCounts.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Brews by Roast Level</Text>
+          <Text style={styles.sectionTitle} role="heading">Brews by Roast Level</Text>
           <HorizBarChart data={roastCounts} />
         </View>
       )}
@@ -201,7 +210,7 @@ export default function AnalyticsScreen() {
       {/* Average flavor profile */}
       {avgProfile && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Average Flavor Profile</Text>
+          <Text style={styles.sectionTitle} role="heading">Average Flavor Profile</Text>
           <Text style={styles.sectionSubtitle}>
             Averaged across {scoredCount} scored {scoredCount === 1 ? 'brew' : 'brews'}
           </Text>
@@ -210,7 +219,7 @@ export default function AnalyticsScreen() {
           </View>
           <View style={styles.profileBreakdown}>
             {(Object.entries(avgProfile) as [keyof FlavorProfile, number][]).map(([key, val]) => (
-              <View key={key} style={styles.profileRow}>
+              <View key={key} style={styles.profileRow} accessible aria-label={`${key}: ${val.toFixed(1)} out of 5`}>
                 <Text style={styles.profileLabel}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
                 <View style={styles.profileTrack}>
                   <View style={[styles.profileFill, { flex: val / 5 }]} />

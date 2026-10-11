@@ -8,6 +8,9 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textLight,
+        // The bar is a fixed height, so its labels stay at their normal size (as iOS's own tab bars
+        // do); everything else in the app follows the system text size
+        tabBarAllowFontScaling: false,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 60, paddingBottom: 8 },
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: { color: colors.textDark, fontWeight: '700' },

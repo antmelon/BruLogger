@@ -38,7 +38,7 @@ export default function AuthCallbackScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Sign-in failed</Text>
       <Text style={styles.message}>{error}</Text>
-      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(auth)/login')} activeOpacity={0.85}>
+      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(auth)/login')} activeOpacity={0.85} role="button">
         <Text style={styles.buttonText}>Back to sign in</Text>
       </TouchableOpacity>
     </View>

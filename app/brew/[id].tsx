@@ -9,9 +9,10 @@ import { colors, shadows } from '../../lib/theme';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
 
-function InfoRow({ label, value }: { label: string; value: string | number }) {
+/** A label and value, read together; `spoken` is the value in words when its unit is abbreviated. */
+function InfoRow({ label, value, spoken }: { label: string; value: string | number; spoken?: string }) {
   return (
-    <View style={styles.infoRow}>
+    <View style={styles.infoRow} accessible aria-label={`${label}: ${spoken ?? value}`}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
@@ -91,13 +92,18 @@ export default function BrewDetailScreen() {
       {/* Photo */}
       {photoUrl && photoSize !== null ? (
         <View style={styles.heroPhotoContainer}>
-          <Image source={{ uri: photoUrl }} style={[styles.heroPhoto, photoSize]} resizeMode="cover" />
+          <Image
+            source={{ uri: photoUrl }}
+            style={[styles.heroPhoto, photoSize]}
+            resizeMode="cover"
+            alt={`Photo of ${brew.coffee_name}`}
+          />
         </View>
       ) : null}
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.coffeeName}>{brew.coffee_name}</Text>
+        <Text style={styles.coffeeName} role="heading">{brew.coffee_name}</Text>
         {brew.roaster ? <Text style={styles.roaster}>{brew.roaster}</Text> : null}
         <Text style={styles.date}>{date}</Text>
         {brew.rating ? (
@@ -109,23 +115,23 @@ export default function BrewDetailScreen() {
 
       {/* Brew info */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Brew Info</Text>
+        <Text style={styles.sectionTitle} role="heading">Brew Info</Text>
         <InfoRow label="Method" value={brew.brew_method} />
         {brew.origin ? <InfoRow label="Origin" value={brew.origin} /> : null}
         {brew.roast_level ? <InfoRow label="Roast" value={brew.roast_level} /> : null}
         {brew.varietal ? <InfoRow label="Varietal" value={brew.varietal} /> : null}
         {brew.processing_method ? <InfoRow label="Processing" value={brew.processing_method} /> : null}
         {brew.grind_size ? <InfoRow label="Grind Size" value={brew.grind_size} /> : null}
-        {brew.water_temp_c ? <InfoRow label="Water Temp" value={`${brew.water_temp_c}°C`} /> : null}
-        {brew.dose_g ? <InfoRow label="Dose" value={`${brew.dose_g}g`} /> : null}
-        {brew.yield_g ? <InfoRow label="Yield" value={`${brew.yield_g}g`} /> : null}
-        {brew.brew_time_s ? <InfoRow label="Brew Time" value={`${brew.brew_time_s}s`} /> : null}
+        {brew.water_temp_c ? <InfoRow label="Water Temp" value={`${brew.water_temp_c}°C`} spoken={`${brew.water_temp_c} degrees Celsius`} /> : null}
+        {brew.dose_g ? <InfoRow label="Dose" value={`${brew.dose_g}g`} spoken={`${brew.dose_g} grams`} /> : null}
+        {brew.yield_g ? <InfoRow label="Yield" value={`${brew.yield_g}g`} spoken={`${brew.yield_g} grams`} /> : null}
+        {brew.brew_time_s ? <InfoRow label="Brew Time" value={`${brew.brew_time_s}s`} spoken={`${brew.brew_time_s} seconds`} /> : null}
       </View>
 
       {/* Flavor profile radar */}
       {brew.flavor_profile ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Flavor Profile</Text>
+          <Text style={styles.sectionTitle} role="heading">Flavor Profile</Text>
           <View style={styles.radarWrapper}>
             <RadarChart profile={brew.flavor_profile} size={280} />
           </View>
@@ -135,14 +141,14 @@ export default function BrewDetailScreen() {
       {/* Tasting notes */}
       {brew.flavor_notes ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Flavor Notes</Text>
+          <Text style={styles.sectionTitle} role="heading">Flavor Notes</Text>
           <Text style={styles.notes}>{brew.flavor_notes}</Text>
         </View>
       ) : null}
 
       {brew.general_notes ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notes</Text>
+          <Text style={styles.sectionTitle} role="heading">Notes</Text>
           <Text style={styles.notes}>{brew.general_notes}</Text>
         </View>
       ) : null}
@@ -153,10 +159,17 @@ export default function BrewDetailScreen() {
           style={styles.editButton}
           onPress={() => router.push(`/brew/edit/${id}`)}
           activeOpacity={0.85}
+          role="button"
         >
           <Text style={styles.editButtonText}>Edit Brew</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton} onPress={confirmDelete} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={confirmDelete}
+          activeOpacity={0.85}
+          role="button"
+          aria-label="Delete brew"
+        >
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
       </View>
@@ -195,9 +208,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
 
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.background },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.background },
   infoLabel: { fontSize: 14, color: colors.textMedium },
-  infoValue: { fontSize: 14, color: colors.textDark, fontWeight: '600' },
+  infoValue: { flexShrink: 1, fontSize: 14, color: colors.textDark, fontWeight: '600', textAlign: 'right' },
 
   radarWrapper: { alignItems: 'center', paddingVertical: 8 },
 

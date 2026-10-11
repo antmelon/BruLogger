@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Image, ActionSheetIOS, Alert, Platform,
+  ActivityIndicator, Image, ActionSheetIOS, Alert, Platform, AccessibilityInfo,
+  TextInputProps, StyleProp, ViewStyle,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../types';
@@ -23,19 +24,40 @@ interface BrewFormProps {
   submitLabel?: string;
 }
 
+/** A text field with its label drawn above it; screen readers get the label on the field itself. */
+function Field({
+  label, required, containerStyle, multiline, ...input
+}: TextInputProps & { label: string; required?: boolean; containerStyle?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.fieldGroup, containerStyle]}>
+      <Text style={styles.label} aria-hidden>{required ? `${label} *` : label}</Text>
+      <TextInput
+        style={[styles.input, multiline && styles.textarea]}
+        placeholderTextColor={colors.textLight}
+        multiline={multiline}
+        aria-label={required ? `${label}, required` : label}
+        {...input}
+      />
+    </View>
+  );
+}
+
 function SelectPills<T extends string>({
-  options, value, onChange, label,
-}: { options: T[]; value: T | null; onChange: (v: T) => void; label: string }) {
+  options, value, onChange, label, required,
+}: { options: T[]; value: T | null; onChange: (v: T) => void; label: string; required?: boolean }) {
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.pills}>
+      <Text style={styles.label} aria-hidden>{required ? `${label} *` : label}</Text>
+      <View style={styles.pills} role="radiogroup" aria-label={required ? `${label}, required` : label}>
         {options.map((opt) => (
           <TouchableOpacity
             key={opt}
             style={[styles.pill, value === opt && styles.pillActive]}
             onPress={() => onChange(opt)}
             activeOpacity={0.7}
+            role="radio"
+            aria-checked={value === opt}
+            hitSlop={{ top: 6, bottom: 6 }}
           >
             <Text style={[styles.pillText, value === opt && styles.pillTextActive]}>{opt}</Text>
           </TouchableOpacity>
@@ -69,6 +91,11 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [saving, setSaving] = useState(false);
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Screen readers announce a save error as soon as it appears (web does it through role="alert")
+  useEffect(() => {
+    if (error && Platform.OS !== 'web') AccessibilityInfo.announceForAccessibility(error);
+  }, [error]);
 
   function setProfileField(field: keyof FlavorProfile, val: number) {
     setProfile((p) => ({ ...(p ?? DEFAULT_PROFILE), [field]: val }));
@@ -160,78 +187,42 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 
       {/* Coffee basics */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>The Coffee</Text>
+        <Text style={styles.sectionTitle} role="heading">The Coffee</Text>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Coffee Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={coffeeName}
-            onChangeText={setCoffeeName}
-            placeholder="e.g. Ethiopia Yirgacheffe"
-            placeholderTextColor={colors.textLight}
-          />
-        </View>
+        <Field label="Coffee Name" required value={coffeeName} onChangeText={setCoffeeName} placeholder="e.g. Ethiopia Yirgacheffe" />
 
         <View style={styles.row2}>
-          <View style={[styles.fieldGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Roaster</Text>
-            <TextInput style={styles.input} value={roaster} onChangeText={setRoaster} placeholder="Roaster name" placeholderTextColor={colors.textLight} />
-          </View>
-          <View style={[styles.fieldGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Origin</Text>
-            <TextInput style={styles.input} value={origin} onChangeText={setOrigin} placeholder="Country/Region" placeholderTextColor={colors.textLight} />
-          </View>
+          <Field label="Roaster" containerStyle={styles.flex1} value={roaster} onChangeText={setRoaster} placeholder="Roaster name" />
+          <Field label="Origin" containerStyle={styles.flex1} value={origin} onChangeText={setOrigin} placeholder="Country/Region" />
         </View>
 
         <SelectPills options={ROAST_LEVELS} value={roastLevel} onChange={setRoastLevel} label="Roast Level" />
 
         <View style={styles.row2}>
-          <View style={[styles.fieldGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Varietal</Text>
-            <TextInput style={styles.input} value={varietal} onChangeText={setVarietal} placeholder="e.g. Gesha, Bourbon" placeholderTextColor={colors.textLight} />
-          </View>
-          <View style={[styles.fieldGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Processing Method</Text>
-            <TextInput style={styles.input} value={processingMethod} onChangeText={setProcessingMethod} placeholder="e.g. Washed, Natural" placeholderTextColor={colors.textLight} />
-          </View>
+          <Field label="Varietal" containerStyle={styles.flex1} value={varietal} onChangeText={setVarietal} placeholder="e.g. Gesha, Bourbon" />
+          <Field label="Processing Method" containerStyle={styles.flex1} value={processingMethod} onChangeText={setProcessingMethod} placeholder="e.g. Washed, Natural" />
         </View>
       </View>
 
       {/* Brew details */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Brew Details</Text>
-        <SelectPills options={BREW_METHODS} value={brewMethod} onChange={setBrewMethod} label="Brew Method *" />
+        <Text style={styles.sectionTitle} role="heading">Brew Details</Text>
+        <SelectPills options={BREW_METHODS} value={brewMethod} onChange={setBrewMethod} label="Brew Method" required />
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Grind Size</Text>
-          <TextInput style={styles.input} value={grindSize} onChangeText={setGrindSize} placeholder="e.g. Medium-Fine" placeholderTextColor={colors.textLight} />
-        </View>
+        <Field label="Grind Size" value={grindSize} onChangeText={setGrindSize} placeholder="e.g. Medium-Fine" />
 
         <View style={styles.row3}>
-          <View style={[styles.fieldGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Water (°C)</Text>
-            <TextInput style={styles.input} value={waterTemp} onChangeText={setWaterTemp} keyboardType="numeric" placeholder="93" placeholderTextColor={colors.textLight} />
-          </View>
-          <View style={[styles.fieldGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Dose (g)</Text>
-            <TextInput style={styles.input} value={dose} onChangeText={setDose} keyboardType="numeric" placeholder="18" placeholderTextColor={colors.textLight} />
-          </View>
-          <View style={[styles.fieldGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Yield (g)</Text>
-            <TextInput style={styles.input} value={yieldG} onChangeText={setYieldG} keyboardType="numeric" placeholder="36" placeholderTextColor={colors.textLight} />
-          </View>
+          <Field label="Water (°C)" containerStyle={styles.flex1} value={waterTemp} onChangeText={setWaterTemp} keyboardType="numeric" placeholder="93" />
+          <Field label="Dose (g)" containerStyle={styles.flex1} value={dose} onChangeText={setDose} keyboardType="numeric" placeholder="18" />
+          <Field label="Yield (g)" containerStyle={styles.flex1} value={yieldG} onChangeText={setYieldG} keyboardType="numeric" placeholder="36" />
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Brew Time (seconds)</Text>
-          <TextInput style={styles.input} value={brewTime} onChangeText={setBrewTime} keyboardType="numeric" placeholder="240" placeholderTextColor={colors.textLight} />
-        </View>
+        <Field label="Brew Time (seconds)" value={brewTime} onChangeText={setBrewTime} keyboardType="numeric" placeholder="240" />
       </View>
 
       {/* Flavor profile */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Flavor Profile</Text>
+        <Text style={styles.sectionTitle} role="heading">Flavor Profile</Text>
         {profile ? (
           <>
             <SliderInput label="Aromatics" value={profile.aromatics} onChange={(v) => setProfileField('aromatics', v)} />
@@ -239,12 +230,12 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
             <SliderInput label="Sweetness" value={profile.sweetness} onChange={(v) => setProfileField('sweetness', v)} />
             <SliderInput label="Aftertaste" value={profile.aftertaste} onChange={(v) => setProfileField('aftertaste', v)} />
             <SliderInput label="Body" value={profile.body} onChange={(v) => setProfileField('body', v)} />
-            <TouchableOpacity onPress={() => setProfile(null)} style={styles.profileRemove} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => setProfile(null)} style={styles.profileRemove} activeOpacity={0.7} role="button">
               <Text style={styles.profileRemoveText}>Remove flavor profile</Text>
             </TouchableOpacity>
           </>
         ) : (
-          <TouchableOpacity onPress={() => setProfile(DEFAULT_PROFILE)} style={styles.photoPlaceholder} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => setProfile(DEFAULT_PROFILE)} style={styles.photoPlaceholder} activeOpacity={0.7} role="button">
             <Text style={styles.photoPlaceholderText}>Score the flavor profile</Text>
           </TouchableOpacity>
         )}
@@ -252,74 +243,78 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 
       {/* Notes */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Tasting Notes</Text>
+        <Text style={styles.sectionTitle} role="heading">Tasting Notes</Text>
+
+        <Field
+          label="Flavor Notes"
+          value={flavorNotes}
+          onChangeText={setFlavorNotes}
+          placeholder="e.g. Blueberry, jasmine, dark chocolate..."
+          multiline
+          numberOfLines={3}
+        />
+
+        <Field
+          label="General Notes"
+          value={generalNotes}
+          onChangeText={setGeneralNotes}
+          placeholder="Anything else worth noting..."
+          multiline
+          numberOfLines={3}
+        />
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Flavor Notes</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={flavorNotes}
-            onChangeText={setFlavorNotes}
-            placeholder="e.g. Blueberry, jasmine, dark chocolate..."
-            placeholderTextColor={colors.textLight}
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>General Notes</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={generalNotes}
-            onChangeText={setGeneralNotes}
-            placeholder="Anything else worth noting..."
-            placeholderTextColor={colors.textLight}
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Overall Rating</Text>
-          <StarRating value={rating} onChange={setRating} size={32} />
+          <Text style={styles.label} aria-hidden>Overall Rating</Text>
+          <StarRating value={rating} onChange={setRating} size={32} label="Overall rating" />
         </View>
       </View>
 
       {/* Photo */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Photo</Text>
+        <Text style={styles.sectionTitle} role="heading">Photo</Text>
         {(photoUri || photoPath) ? (
           <View>
             <Image
               source={{ uri: (photoUri ?? savedPhotoUrl ?? '') }}
               style={styles.photoPreview}
               resizeMode="contain"
+              alt="Photo of this brew"
             />
             <View style={styles.photoActions}>
-              <TouchableOpacity onPress={pickImage} style={styles.photoActionBtn} activeOpacity={0.7}>
+              <TouchableOpacity onPress={pickImage} style={styles.photoActionBtn} activeOpacity={0.7} role="button" aria-label="Change photo">
                 <Text style={styles.photoActionText}>Change</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => { setPhotoUri(null); setPhotoPath(null); }}
                 style={[styles.photoActionBtn, styles.photoActionRemove]}
                 activeOpacity={0.7}
+                role="button"
+                aria-label="Remove photo"
               >
                 <Text style={[styles.photoActionText, { color: colors.error }]}>Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
-          <TouchableOpacity onPress={pickImage} style={styles.photoPlaceholder} activeOpacity={0.7}>
+          <TouchableOpacity onPress={pickImage} style={styles.photoPlaceholder} activeOpacity={0.7} role="button">
             <ImageIcon size={28} color={colors.textLight} />
             <Text style={styles.photoPlaceholderText}>Add a photo of your brew</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text style={styles.errorText} role="alert">{error}</Text> : null}
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={saving || preparingPhoto} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={handleSubmit}
+        disabled={saving || preparingPhoto}
+        activeOpacity={0.85}
+        role="button"
+        aria-label={submitLabel}
+        aria-busy={saving || preparingPhoto}
+        aria-disabled={saving || preparingPhoto}
+      >
         {saving || preparingPhoto
           ? <ActivityIndicator color={colors.surface} />
           : <Text style={styles.submitText}>{submitLabel}</Text>}
@@ -331,6 +326,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 48 },
+  flex1: { flex: 1 },
   section: {
     backgroundColor: colors.surface,
     borderRadius: 16,
