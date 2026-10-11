@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <!-- Expo's default web template plus what makes the site installable as an app (Android uses
+         the website until there's a Play Store version). Expo fills in the %...% placeholders,
+         and adds theme-color and description from app.json's "web" settings. -->
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>%WEB_TITLE%</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+    <script>
+      // Chrome offers installation through this event, which can fire before the app has loaded,
+      // so keep it for lib/install.ts. Calling preventDefault swaps Chrome's own install banner
+      // for the app's Install button.
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        window.__installPrompt = event;
+        window.dispatchEvent(new Event('installpromptchange'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__installPrompt = null;
+        window.dispatchEvent(new Event('installpromptchange'));
+      });
+      // Shows public/offline.html instead of the browser's error page when there's no connection
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

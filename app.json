@@ -21,7 +21,9 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "themeColor": "#F5EFE6",
+      "description": "Your personal coffee journal. Track, rate, and remember every brew."
     },
     "scheme": "brulogger",
     "plugins": [

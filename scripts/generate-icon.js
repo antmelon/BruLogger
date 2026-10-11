@@ -42,6 +42,13 @@ const adaptive = (art) =>
 const androidForegroundSvg = adaptive(cup('#F5EFE6', '#8B5A2B'));
 const androidMonochromeSvg = adaptive(cup('#FFFFFF', '#FFFFFF'));
 
+// Web app (installed from the browser). A maskable icon gets cropped to the launcher's shape, which
+// only promises the center 80% stays visible, so it reuses the scaled-down adaptive art on a fill.
+const maskableSvg = svg1024(
+  `<rect width="1024" height="1024" fill="#4A3728"/>` +
+    `<g transform="translate(512 512) scale(0.7) translate(-568 -453)">${cup('#F5EFE6', '#8B5A2B')}</g>`,
+);
+
 const faviconSvg = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <rect width="64" height="64" fill="#4A3728"/>
@@ -56,15 +63,20 @@ const faviconSvg = `
 
 async function generate() {
   const assetsDir = path.join(__dirname, '..', 'assets');
+  const webIconsDir = path.join(__dirname, '..', 'public', 'icons'); // listed in public/manifest.webmanifest
   const outputs = [
-    ['icon.png', iconSvg, 1024],
-    ['splash-icon.png', iconSvg, 1024],
-    ['android-icon-foreground.png', androidForegroundSvg, 512],
-    ['android-icon-monochrome.png', androidMonochromeSvg, 432],
-    ['favicon.png', faviconSvg, 64],
+    [assetsDir, 'icon.png', iconSvg, 1024],
+    [assetsDir, 'splash-icon.png', iconSvg, 1024],
+    [assetsDir, 'android-icon-foreground.png', androidForegroundSvg, 512],
+    [assetsDir, 'android-icon-monochrome.png', androidMonochromeSvg, 432],
+    [assetsDir, 'favicon.png', faviconSvg, 64],
+    [webIconsDir, 'icon-192.png', iconSvg, 192],
+    [webIconsDir, 'icon-512.png', iconSvg, 512],
+    [webIconsDir, 'maskable-512.png', maskableSvg, 512],
+    [webIconsDir, 'apple-touch-icon.png', iconSvg, 180],
   ];
-  for (const [file, svg, size] of outputs) {
-    await sharp(Buffer.from(svg)).resize(size, size).png().toFile(path.join(assetsDir, file));
+  for (const [dir, file, svg, size] of outputs) {
+    await sharp(Buffer.from(svg)).resize(size, size).png().toFile(path.join(dir, file));
     console.log(`✓ ${file}`);
   }
 }

@@ -5,6 +5,7 @@ import {
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { deleteAccount } from '../../lib/account';
+import { useInstallPrompt } from '../../lib/install';
 import { brewStats } from '../../lib/analytics';
 import { useBrews } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
@@ -23,6 +24,7 @@ export default function ProfileScreen() {
   const { data: brews, isPending } = useBrews();
   const stats = useMemo(() => (brews ? brewStats(brews) : null), [brews]);
   const [deleting, setDeleting] = useState(false);
+  const { canInstall, install } = useInstallPrompt();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
@@ -89,6 +91,12 @@ export default function ProfileScreen() {
             <StatTile label="Top Origin" value={stats.topOrigin ?? '—'} />
           </View>
         </View>
+      )}
+
+      {canInstall && (
+        <TouchableOpacity style={styles.install} onPress={install} activeOpacity={0.85}>
+          <Text style={styles.installText}>Install the App</Text>
+        </TouchableOpacity>
       )}
 
       <TouchableOpacity style={styles.signOut} onPress={() => supabase.auth.signOut()} activeOpacity={0.85}>
@@ -168,6 +176,16 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 18, fontWeight: '800', color: colors.textDark, marginBottom: 4 },
   statLabel: { fontSize: 12, color: colors.textMedium, fontWeight: '500' },
+
+  install: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+    ...shadows.button,
+  },
+  installText: { color: colors.surface, fontSize: 15, fontWeight: '600' },
 
   signOut: {
     borderWidth: 1.5,

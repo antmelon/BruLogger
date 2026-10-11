@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, shadows } from '../lib/theme';
+import { useInstallPrompt } from '../lib/install';
 import { CoffeeIcon, StarIcon, SearchIcon } from '../components/icons';
 
 const FEATURES = [
@@ -23,6 +24,7 @@ const FEATURES = [
 
 export default function LandingScreen() {
   const router = useRouter();
+  const { canInstall, install } = useInstallPrompt();
 
   return (
     <ScrollView
@@ -47,6 +49,15 @@ export default function LandingScreen() {
         >
           <Text style={styles.ctaText}>Get Started — it&apos;s free</Text>
         </TouchableOpacity>
+        {canInstall && (
+          <TouchableOpacity
+            style={[styles.secondaryButton, styles.installButton]}
+            onPress={install}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryButtonText}>Install the app</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Features */}
@@ -206,6 +217,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  installButton: { marginTop: 14 },
 
   footer: {
     fontSize: 12,
