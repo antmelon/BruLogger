@@ -28,7 +28,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           origin: string | null
-          photo_url: string | null
+          photo_path: string | null
           processing_method: string | null
           rating: number | null
           roast_level: string | null
@@ -51,7 +51,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           origin?: string | null
-          photo_url?: string | null
+          photo_path?: string | null
           processing_method?: string | null
           rating?: number | null
           roast_level?: string | null
@@ -74,7 +74,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           origin?: string | null
-          photo_url?: string | null
+          photo_path?: string | null
           processing_method?: string | null
           rating?: number | null
           roast_level?: string | null

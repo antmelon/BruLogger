@@ -85,11 +85,10 @@ export async function POST(request: Request) {
     if (saved) return json({ brew: saved, replayed: true });
   }
 
-  let photoUrl: string | null = null;
+  let photoPath: string | null = null;
   if (photoInput) {
-    const uploaded = await uploadPhoto(ctx, photoInput);
-    if (!uploaded) return error(500, 'Failed to upload photo.');
-    photoUrl = uploaded.url;
+    photoPath = await uploadPhoto(ctx, photoInput);
+    if (!photoPath) return error(500, 'Failed to upload photo.');
   }
 
   const { data, error: dbError } = await ctx.db
@@ -97,14 +96,14 @@ export async function POST(request: Request) {
     .insert({
       ...parsed.value,
       user_id: ctx.userId,
-      photo_url: photoUrl,
+      photo_path: photoPath,
       ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
     })
     .select()
     .single();
 
   if (dbError) {
-    if (photoUrl) await removePhoto(ctx, photoUrl);
+    if (photoPath) await removePhoto(ctx, photoPath);
     // A concurrent save with the same key won the unique index: return what it saved
     if (idempotencyKey && dbError.code === '23505') {
       const saved = await findByIdempotencyKey(ctx, idempotencyKey);

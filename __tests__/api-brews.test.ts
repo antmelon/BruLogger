@@ -26,7 +26,6 @@ jest.mock('@supabase/supabase-js', () => ({
       from: () => ({
         upload: mockUpload,
         remove: mockRemove,
-        getPublicUrl: (path: string) => ({ data: { publicUrl: `https://cdn.test/brew-photos/${path}` } }),
       }),
     },
   }),
@@ -128,7 +127,7 @@ describe('POST /api/brews', () => {
     const res = await POST(req('POST', { body: brew }));
     expect(res.status).toBe(201);
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      coffee_name: 'Guji', brew_method: 'Pour Over', dose_g: 15, user_id: 'user-1', photo_url: null,
+      coffee_name: 'Guji', brew_method: 'Pour Over', dose_g: 15, user_id: 'user-1', photo_path: null,
     }));
   });
 
@@ -152,7 +151,7 @@ describe('POST /api/brews', () => {
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
-  it('uploads a photo into the user folder and links it', async () => {
+  it('uploads a photo into the user folder and stores its path', async () => {
     const data = Buffer.from('fake-jpeg').toString('base64');
     const res = await POST(req('POST', { body: { ...brew, photo: { data, mime_type: 'image/jpeg' } } }));
     expect(res.status).toBe(201);
@@ -161,7 +160,7 @@ describe('POST /api/brews', () => {
     expect(bytes.toString()).toBe('fake-jpeg');
     expect(opts).toEqual({ contentType: 'image/jpeg' });
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      photo_url: `https://cdn.test/brew-photos/${path}`,
+      photo_path: path,
     }));
   });
 
@@ -243,7 +242,7 @@ describe('GET /api/brews/:id', () => {
 describe('PATCH /api/brews/:id', () => {
   it("updates only the fields sent, on the user's brew", async () => {
     queueResults(
-      { data: { id: ID, photo_url: null }, error: null }, // lookup
+      { data: { id: ID, photo_path: null }, error: null }, // lookup
       { data: { id: ID, dose_g: 16, roaster: null }, error: null }, // update
     );
     const res = await PATCH(req('PATCH', { path: `/${ID}`, body: { dose_g: '16', roaster: null } }));
@@ -265,7 +264,7 @@ describe('PATCH /api/brews/:id', () => {
 
   it('replaces the photo, deleting the old file only after the update succeeds', async () => {
     queueResults(
-      { data: { id: ID, photo_url: 'https://cdn.test/brew-photos/user-1/old.jpg' }, error: null },
+      { data: { id: ID, photo_path: 'user-1/old.jpg' }, error: null },
       { data: { id: ID }, error: null },
     );
     const data = Buffer.from('new').toString('base64');
@@ -273,25 +272,25 @@ describe('PATCH /api/brews/:id', () => {
     expect(res.status).toBe(200);
     const [path] = mockUpload.mock.calls[0];
     expect(path).toMatch(/^user-1\/\d+\.png$/);
-    expect(mockQuery.update).toHaveBeenCalledWith({ photo_url: `https://cdn.test/brew-photos/${path}` });
+    expect(mockQuery.update).toHaveBeenCalledWith({ photo_path: path });
     expect(mockRemove).toHaveBeenCalledWith(['user-1/old.jpg']);
   });
 
   it('removes the photo with photo: null', async () => {
     queueResults(
-      { data: { id: ID, photo_url: 'https://cdn.test/brew-photos/user-1/old.jpg' }, error: null },
-      { data: { id: ID, photo_url: null }, error: null },
+      { data: { id: ID, photo_path: 'user-1/old.jpg' }, error: null },
+      { data: { id: ID, photo_path: null }, error: null },
     );
     const res = await PATCH(req('PATCH', { path: `/${ID}`, body: { photo: null } }));
     expect(res.status).toBe(200);
-    expect(mockQuery.update).toHaveBeenCalledWith({ photo_url: null });
+    expect(mockQuery.update).toHaveBeenCalledWith({ photo_path: null });
     expect(mockRemove).toHaveBeenCalledWith(['user-1/old.jpg']);
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
   it('removes the newly uploaded photo and keeps the old one if the update fails', async () => {
     queueResults(
-      { data: { id: ID, photo_url: 'https://cdn.test/brew-photos/user-1/old.jpg' }, error: null },
+      { data: { id: ID, photo_path: 'user-1/old.jpg' }, error: null },
       { data: null, error: { message: 'boom' } },
     );
     const data = Buffer.from('new').toString('base64');
@@ -304,7 +303,7 @@ describe('PATCH /api/brews/:id', () => {
 
 describe('DELETE /api/brews/:id', () => {
   it("deletes the user's brew, then its photo, and returns what was deleted", async () => {
-    const brew = { id: ID, coffee_name: 'Guji', photo_url: 'https://cdn.test/brew-photos/user-1/p.jpg' };
+    const brew = { id: ID, coffee_name: 'Guji', photo_path: 'user-1/p.jpg' };
     queueResults({ data: brew, error: null }, { data: null, error: null });
     const res = await DELETE(req('DELETE', { path: `/${ID}` }));
     expect(res.status).toBe(200);

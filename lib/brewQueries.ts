@@ -5,7 +5,7 @@ import {
 } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
 import { Brew, BrewInsert } from '../types';
-import { createBrew, deleteBrew, deleteBrewPhoto, getBrew, getBrews, updateBrew } from './brews';
+import { createBrew, deleteBrew, deleteBrewPhoto, getBrew, getBrews, getPhotoUrl, updateBrew } from './brews';
 
 // Cached access to brews for screens, built on lib/brews.ts. Every screen reads the same 'brews'
 // query; a brew's detail is keyed under it (['brews', id]) so invalidating the list covers both.
@@ -80,10 +80,10 @@ export function useCreateBrew() {
 export function useUpdateBrew() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: string; brew: BrewInsert; previousPhotoUrl: string | null }) => {
+    mutationFn: async (vars: { id: string; brew: BrewInsert; previousPhotoPath: string | null }) => {
       const updated = await updateBrew(vars.id, vars.brew);
-      if (vars.previousPhotoUrl && vars.brew.photo_url !== vars.previousPhotoUrl) {
-        await deleteBrewPhoto(vars.previousPhotoUrl).catch((e) => console.warn('Failed to delete old photo:', e));
+      if (vars.previousPhotoPath && vars.brew.photo_path !== vars.previousPhotoPath) {
+        await deleteBrewPhoto(vars.previousPhotoPath).catch((e) => console.warn('Failed to delete old photo:', e));
       }
       return updated;
     },
@@ -97,14 +97,30 @@ export function useUpdateBrew() {
 export function useDeleteBrew() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (brew: Pick<Brew, 'id' | 'photo_url'>) => {
+    mutationFn: async (brew: Pick<Brew, 'id' | 'photo_path'>) => {
       await deleteBrew(brew.id);
-      if (brew.photo_url) {
-        await deleteBrewPhoto(brew.photo_url).catch((e) => console.warn('Failed to delete photo:', e));
+      if (brew.photo_path) {
+        await deleteBrewPhoto(brew.photo_path).catch((e) => console.warn('Failed to delete photo:', e));
       }
     },
     // Only the list: the deleted brew's own entry is still observed by the detail screen until it
     // navigates away, and refetching it there would flash "not found". It expires on its own.
     onSuccess: () => client.invalidateQueries({ queryKey: keys.all, exact: true }),
+  });
+}
+
+const SIGNED_URL_TTL_S = 3600;
+
+/**
+ * A displayable link for a brew's photo. The bucket is private, so this is a signed link that
+ * expires after an hour; it's cached for 50 minutes and refetched after that.
+ */
+export function usePhotoUrl(path: string | null | undefined) {
+  return useQuery({
+    queryKey: ['photo-url', path],
+    queryFn: () => getPhotoUrl(path!, SIGNED_URL_TTL_S),
+    enabled: !!path,
+    staleTime: (SIGNED_URL_TTL_S - 600) * 1000,
+    gcTime: SIGNED_URL_TTL_S * 1000,
   });
 }

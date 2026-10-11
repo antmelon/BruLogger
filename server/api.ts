@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
-import { PHOTO_BUCKET, photoPathFromUrl } from '../lib/storage';
+import { PHOTO_BUCKET } from '../lib/storage';
 
 // Shared by the HTTP API functions in api/ (used by the Hermes Telegram bot). Kept outside api/
 // so Vercel doesn't deploy it as a function of its own.
@@ -91,8 +91,8 @@ export function parsePhoto(photo: unknown, errors: string[]): Photo | null {
   return errors.length === before && bytes && mimeType ? { bytes, mimeType } : null;
 }
 
-/** Uploads into the user's folder. Returns the storage path and public URL, or null on failure. */
-export async function uploadPhoto(ctx: Context, photo: Photo): Promise<{ path: string; url: string } | null> {
+/** Uploads into the user's folder. Returns the storage path (brews.photo_path), or null on failure. */
+export async function uploadPhoto(ctx: Context, photo: Photo): Promise<string | null> {
   const path = `${ctx.userId}/${Date.now()}.${PHOTO_TYPES[photo.mimeType]}`;
   const { error: uploadError } = await ctx.db.storage
     .from(PHOTO_BUCKET)
@@ -101,13 +101,11 @@ export async function uploadPhoto(ctx: Context, photo: Photo): Promise<{ path: s
     console.error('api photo upload:', uploadError);
     return null;
   }
-  return { path, url: ctx.db.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl };
+  return path;
 }
 
-/** Best-effort removal of a stored photo by its public URL (the DB write already succeeded). */
-export async function removePhoto(ctx: Context, publicUrl: string): Promise<void> {
-  const path = photoPathFromUrl(publicUrl);
-  if (!path) return;
+/** Best-effort removal of a stored photo (the DB write already succeeded). */
+export async function removePhoto(ctx: Context, path: string): Promise<void> {
   const { error: removeError } = await ctx.db.storage.from(PHOTO_BUCKET).remove([path]);
   if (removeError) console.error('api photo remove:', removeError);
 }

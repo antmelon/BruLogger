@@ -27,7 +27,7 @@ Free-text notes about the Brew that aren't tasting descriptors (technique tweaks
 The measurable recipe of a Brew: grind size (free text), water temperature (°C), dose (g of coffee), yield (g of liquid out), and brew time (whole seconds). All optional.
 
 ### Photo
-An optional single image attached to a Brew, stored in the `brew-photos` Supabase Storage bucket. Photos are publicly readable by URL, but only their owner can upload or delete them.
+An optional single image attached to a Brew, stored in the private `brew-photos` Supabase Storage bucket. Only its owner can view, upload or delete it; the app shows it through a short-lived signed link.
 
 ### BrewInsert
 The data shape used when creating or updating a Brew. Identical to Brew minus the server-generated fields (id, user_id, created_at). Unset optional fields are `null`.

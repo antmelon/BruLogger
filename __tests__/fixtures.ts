@@ -21,6 +21,6 @@ export const BASE_BREW: Brew = {
   general_notes: null,
   rating: null,
   flavor_profile: null,
-  photo_url: null,
+  photo_path: null,
   idempotency_key: null,
 };

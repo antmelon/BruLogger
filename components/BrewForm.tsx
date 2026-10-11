@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { BrewInsert, BrewMethod, FlavorProfile, RoastLevel, BREW_METHODS, ROAST_LEVELS } from '../types';
 import { uploadBrewPhoto } from '../lib/brews';
+import { usePhotoUrl } from '../lib/brewQueries';
 import { prepareForUpload } from '../lib/photos';
 import { toBrewInsert } from '../lib/form';
 import { colors, shadows } from '../lib/theme';
@@ -62,7 +63,9 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [rating, setRating] = useState(initial.rating ?? 0);
   const [profile, setProfile] = useState<FlavorProfile | null>(initial.flavor_profile ?? null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(initial.photo_url ?? null);
+  // photoUri: a newly picked photo, not yet uploaded. photoPath: the saved photo being kept.
+  const [photoPath, setPhotoPath] = useState<string | null>(initial.photo_path ?? null);
+  const { data: savedPhotoUrl } = usePhotoUrl(photoUri ? null : photoPath);
   const [saving, setSaving] = useState(false);
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +101,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   async function setPickedPhoto(asset: ImagePicker.ImagePickerAsset) {
     setPreparingPhoto(true);
     setPhotoUri(await prepareForUpload(asset));
-    setPhotoUrl(null);
+    setPhotoPath(null);
     setPreparingPhoto(false);
   }
 
@@ -127,7 +130,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   async function handleSubmit() {
     const result = toBrewInsert({
       coffeeName, roaster, origin, roastLevel, varietal, processingMethod, brewMethod, grindSize,
-      waterTemp, dose, yieldG, brewTime, flavorNotes, generalNotes, rating, profile, photoUrl,
+      waterTemp, dose, yieldG, brewTime, flavorNotes, generalNotes, rating, profile, photoPath,
     });
     if (!result.ok) {
       setError(result.error);
@@ -137,14 +140,14 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
     setError(null);
     setSaving(true);
     try {
-      let photo_url = result.value.photo_url ?? null; // kept, removed (null) or never set
+      let photo_path = result.value.photo_path ?? null; // kept, removed (null) or never set
       if (photoUri) {
-        photo_url = await uploadBrewPhoto(photoUri);
-        // Keep the uploaded URL so a retry after a failed save doesn't upload again
+        photo_path = await uploadBrewPhoto(photoUri);
+        // Keep the uploaded path so a retry after a failed save doesn't upload again
         setPhotoUri(null);
-        setPhotoUrl(photo_url);
+        setPhotoPath(photo_path);
       }
-      await onSubmit({ ...result.value, photo_url });
+      await onSubmit({ ...result.value, photo_path });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
@@ -286,10 +289,10 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
       {/* Photo */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Photo</Text>
-        {(photoUri || photoUrl) ? (
+        {(photoUri || photoPath) ? (
           <View>
             <Image
-              source={{ uri: (photoUri ?? photoUrl) as string }}
+              source={{ uri: (photoUri ?? savedPhotoUrl ?? '') }}
               style={styles.photoPreview}
               resizeMode="contain"
             />
@@ -298,7 +301,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
                 <Text style={styles.photoActionText}>Change</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => { setPhotoUri(null); setPhotoUrl(null); }}
+                onPress={() => { setPhotoUri(null); setPhotoPath(null); }}
                 style={[styles.photoActionBtn, styles.photoActionRemove]}
                 activeOpacity={0.7}
               >

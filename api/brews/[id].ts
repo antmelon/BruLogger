@@ -55,7 +55,7 @@ export async function PATCH(request: Request) {
   const newPhoto = photo != null ? parsePhoto(photo, errors) : null;
   if (!parsed.ok || errors.length) return error(400, 'Invalid changes.', errors);
   const changes = { ...parsed.value };
-  if ('photo' in body && photo === null) changes.photo_url = null;
+  if ('photo' in body && photo === null) changes.photo_path = null;
   if (Object.keys(changes).length === 0 && !newPhoto) return error(400, 'Nothing to update.');
 
   const existing = await findBrew(ctx, id);
@@ -65,19 +65,19 @@ export async function PATCH(request: Request) {
   if (newPhoto) {
     const uploaded = await uploadPhoto(ctx, newPhoto);
     if (!uploaded) return error(500, 'Failed to upload photo.');
-    changes.photo_url = uploaded.url;
+    changes.photo_path = uploaded;
   }
 
   const { data, error: dbError } = await ctx.db
     .from('brews').update(changes).eq('id', id).eq('user_id', ctx.userId).select().single();
   if (dbError) {
     console.error('api/brews/:id update:', dbError);
-    if (newPhoto && changes.photo_url) await removePhoto(ctx, changes.photo_url);
+    if (newPhoto && changes.photo_path) await removePhoto(ctx, changes.photo_path);
     return error(500, 'Failed to update brew.');
   }
   // The old photo goes only once the row no longer points at it
-  if (existing.photo_url && 'photo_url' in changes && changes.photo_url !== existing.photo_url) {
-    await removePhoto(ctx, existing.photo_url);
+  if (existing.photo_path && 'photo_path' in changes && changes.photo_path !== existing.photo_path) {
+    await removePhoto(ctx, existing.photo_path);
   }
   return json({ brew: data });
 }
@@ -97,6 +97,6 @@ export async function DELETE(request: Request) {
     console.error('api/brews/:id delete:', dbError);
     return error(500, 'Failed to delete brew.');
   }
-  if (existing.photo_url) await removePhoto(ctx, existing.photo_url);
+  if (existing.photo_path) await removePhoto(ctx, existing.photo_path);
   return json({ deleted: existing });
 }
