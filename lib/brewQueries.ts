@@ -4,11 +4,14 @@ import {
   focusManager, QueryClient, QueryKey, useMutation, useQuery, useQueryClient,
 } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
-import { Brew, BrewInsert } from '../types';
+import { Brew, BrewInsert, Coffee, CoffeeInsert } from '../types';
 import { createBrew, deleteBrew, deleteBrewPhoto, getBrew, getBrews, getPhotoUrl, updateBrew } from './brews';
+import { createCoffee, deleteCoffee, getCoffees, updateCoffee } from './coffees';
 
-// Cached access to brews for screens, built on lib/brews.ts. Every screen reads the same 'brews'
-// query; a brew's detail is keyed under it (['brews', id]) so invalidating the list covers both.
+// Cached access to brews and coffees for screens, built on lib/brews.ts and lib/coffees.ts. Every
+// screen reads the same 'brews' query; a brew's detail is keyed under it (['brews', id]) so
+// invalidating the list covers both. Brews embed their coffee, so editing a coffee refreshes the
+// brews too. Coffees are one 'coffees' list.
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -17,6 +20,7 @@ export const queryClient = new QueryClient({
 const keys = {
   all: ['brews'] as const,
   one: (id: string) => ['brews', id] as const,
+  coffees: ['coffees'] as const,
 };
 
 /** Native has no window focus events, so treat the app returning to the foreground as focus. */
@@ -106,6 +110,46 @@ export function useDeleteBrew() {
     // Only the list: the deleted brew's own entry is still observed by the detail screen until it
     // navigates away, and refetching it there would flash "not found". It expires on its own.
     onSuccess: () => client.invalidateQueries({ queryKey: keys.all, exact: true }),
+  });
+}
+
+export function useCoffees() {
+  useRefetchOnScreenFocus(keys.coffees);
+  return useQuery({ queryKey: keys.coffees, queryFn: getCoffees });
+}
+
+/**
+ * The new coffee goes into the cached list straight away, so the brew form can save a brew of it
+ * without waiting for the list to reload.
+ */
+export function useCreateCoffee() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: createCoffee,
+    onSuccess: (coffee) => {
+      client.setQueryData<Coffee[]>(keys.coffees, (list) => (list ? [coffee, ...list] : list));
+      void client.invalidateQueries({ queryKey: keys.coffees });
+    },
+  });
+}
+
+/** Also refreshes the brews, which carry their coffee's details. */
+export function useUpdateCoffee() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; coffee: Partial<CoffeeInsert> }) => updateCoffee(vars.id, vars.coffee),
+    onSuccess: () => Promise.all([
+      client.invalidateQueries({ queryKey: keys.coffees }),
+      client.invalidateQueries({ queryKey: keys.all }),
+    ]),
+  });
+}
+
+export function useDeleteCoffee() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: deleteCoffee,
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.coffees }),
   });
 }
 

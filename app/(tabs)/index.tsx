@@ -50,8 +50,8 @@ function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
       <View style={styles.cardBody}>
         <View style={styles.cardHeader}>
           <View style={styles.cardTitles}>
-            <Text style={styles.coffeeName}>{brew.coffee_name}</Text>
-            {brew.roaster ? <Text style={styles.roaster}>{brew.roaster}</Text> : null}
+            <Text style={styles.coffeeName}>{brew.coffee.name}</Text>
+            {brew.coffee.roaster ? <Text style={styles.roaster}>{brew.coffee.roaster}</Text> : null}
           </View>
           <Text style={styles.date}>{date}</Text>
         </View>
@@ -60,9 +60,9 @@ function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
           <View style={styles.tag}>
             <Text style={styles.tagText}>{brew.brew_method}</Text>
           </View>
-          {brew.roast_level ? (
+          {brew.coffee.roast_level ? (
             <View style={styles.tag}>
-              <Text style={styles.tagText}>{brew.roast_level}</Text>
+              <Text style={styles.tagText}>{brew.coffee.roast_level}</Text>
             </View>
           ) : null}
         </View>

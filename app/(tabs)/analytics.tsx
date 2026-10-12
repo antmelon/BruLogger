@@ -137,7 +137,7 @@ export default function AnalyticsScreen() {
   const chartWidth = width - 32 - 40; // screen - horizontal padding - section padding
 
   const methodCounts = useMemo(() => countBy(brews.map((b) => b.brew_method)), [brews]);
-  const roastCounts = useMemo(() => countBy(brews.filter((b) => b.roast_level).map((b) => b.roast_level!)), [brews]);
+  const roastCounts = useMemo(() => countBy(brews.filter((b) => b.coffee.roast_level).map((b) => b.coffee.roast_level!)), [brews]);
   const avgProfile = useMemo(() => avgFlavorProfile(brews), [brews]);
   const scoredCount = useMemo(() => brews.filter((b) => b.flavor_profile).length, [brews]);
   const { avgRating, topMethod } = useMemo(() => brewStats(brews), [brews]);

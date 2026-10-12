@@ -44,7 +44,7 @@ export function brewStats(brews: Brew[]): BrewStats {
   const ratings = brews.map((b) => b.rating).filter((r): r is number => r != null);
   const avgRating = ratings.length ? ratings.reduce((s, r) => s + r, 0) / ratings.length : null;
   const topMethod = countBy(brews.map((b) => b.brew_method))[0]?.label ?? null;
-  const origins = brews.map((b) => b.origin).filter((o): o is string => !!o);
+  const origins = brews.map((b) => b.coffee.origin).filter((o): o is string => !!o);
   const topOrigin = countBy(origins)[0]?.label ?? null;
   return { total: brews.length, avgRating, topMethod, topOrigin };
 }

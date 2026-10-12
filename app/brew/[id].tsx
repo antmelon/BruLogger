@@ -6,6 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useBrew, useDeleteBrew, usePhotoUrl } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
+import { daysSinceRoast } from '../../lib/coffeeStats';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
 
@@ -83,6 +84,8 @@ export default function BrewDetailScreen() {
     );
   }
 
+  const { coffee } = brew;
+  const daysOffRoast = daysSinceRoast(coffee.roast_date, brew.created_at);
   const date = new Date(brew.created_at).toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
@@ -96,15 +99,15 @@ export default function BrewDetailScreen() {
             source={{ uri: photoUrl }}
             style={[styles.heroPhoto, photoSize]}
             resizeMode="cover"
-            alt={`Photo of ${brew.coffee_name}`}
+            alt={`Photo of ${brew.coffee.name}`}
           />
         </View>
       ) : null}
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.coffeeName} role="heading">{brew.coffee_name}</Text>
-        {brew.roaster ? <Text style={styles.roaster}>{brew.roaster}</Text> : null}
+        <Text style={styles.coffeeName} role="heading">{brew.coffee.name}</Text>
+        {brew.coffee.roaster ? <Text style={styles.roaster}>{brew.coffee.roaster}</Text> : null}
         <Text style={styles.date}>{date}</Text>
         {brew.rating ? (
           <View style={{ marginTop: 8 }}>
@@ -113,14 +116,31 @@ export default function BrewDetailScreen() {
         ) : null}
       </View>
 
+      {/* The coffee */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} role="heading">The Coffee</Text>
+        {coffee.origin ? <InfoRow label="Origin" value={coffee.origin} /> : null}
+        {coffee.roast_level ? <InfoRow label="Roast" value={coffee.roast_level} /> : null}
+        {coffee.varietal ? <InfoRow label="Varietal" value={coffee.varietal} /> : null}
+        {coffee.processing_method ? <InfoRow label="Processing" value={coffee.processing_method} /> : null}
+        {daysOffRoast !== null && daysOffRoast >= 0 ? (
+          <InfoRow label="Brewed" value={daysOffRoast === 0 ? 'Roast day' : `${daysOffRoast} ${daysOffRoast === 1 ? 'day' : 'days'} off roast`} />
+        ) : null}
+        <TouchableOpacity
+          style={styles.coffeeLink}
+          onPress={() => router.push(`/coffee/${brew.coffee_id}`)}
+          activeOpacity={0.7}
+          role="link"
+          aria-label={`See ${coffee.name}: its details and every brew of it`}
+        >
+          <Text style={styles.coffeeLinkText}>See this coffee and its brews</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Brew info */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle} role="heading">Brew Info</Text>
         <InfoRow label="Method" value={brew.brew_method} />
-        {brew.origin ? <InfoRow label="Origin" value={brew.origin} /> : null}
-        {brew.roast_level ? <InfoRow label="Roast" value={brew.roast_level} /> : null}
-        {brew.varietal ? <InfoRow label="Varietal" value={brew.varietal} /> : null}
-        {brew.processing_method ? <InfoRow label="Processing" value={brew.processing_method} /> : null}
         {brew.grind_size ? <InfoRow label="Grind Size" value={brew.grind_size} /> : null}
         {brew.water_temp_c ? <InfoRow label="Water Temp" value={`${brew.water_temp_c}°C`} spoken={`${brew.water_temp_c} degrees Celsius`} /> : null}
         {brew.dose_g ? <InfoRow label="Dose" value={`${brew.dose_g}g`} spoken={`${brew.dose_g} grams`} /> : null}
@@ -211,6 +231,9 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.background },
   infoLabel: { fontSize: 14, color: colors.textMedium },
   infoValue: { flexShrink: 1, fontSize: 14, color: colors.textDark, fontWeight: '600', textAlign: 'right' },
+
+  coffeeLink: { paddingTop: 12, alignSelf: 'flex-start' },
+  coffeeLinkText: { fontSize: 14, fontWeight: '600', color: colors.primary },
 
   radarWrapper: { alignItems: 'center', paddingVertical: 8 },
 

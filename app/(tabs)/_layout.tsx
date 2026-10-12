@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { CoffeeIcon, ChartIcon, UserIcon } from '../../components/icons';
+import { BagIcon, CoffeeIcon, ChartIcon, UserIcon } from '../../components/icons';
 import { colors } from '../../lib/theme';
 
 export default function TabsLayout() {
@@ -21,6 +21,13 @@ export default function TabsLayout() {
         options={{
           title: 'My Brews',
           tabBarIcon: ({ color }) => <CoffeeIcon size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="coffees"
+        options={{
+          title: 'Coffees',
+          tabBarIcon: ({ color }) => <BagIcon size={22} color={color} />,
         }}
       />
       <Tabs.Screen

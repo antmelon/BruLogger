@@ -1,5 +1,5 @@
-import { brewCardLabel, flavorProfileLabel, ratingLabel, ratingTrendLabel, stepRating } from '../lib/a11y';
-import { BASE_BREW } from './fixtures';
+import { brewCardLabel, coffeeCardLabel, flavorProfileLabel, ratingLabel, ratingTrendLabel, stepRating } from '../lib/a11y';
+import { BASE_BREW, BASE_COFFEE } from './fixtures';
 
 describe('ratingLabel', () => {
   it('says the rating out of five stars', () => {
@@ -51,10 +51,8 @@ describe('brewCardLabel', () => {
   it('reads a brew card as one sentence', () => {
     const brew = {
       ...BASE_BREW,
-      coffee_name: 'Kenya AA Nyeri',
-      roaster: 'Onyx',
+      coffee: { ...BASE_COFFEE, name: 'Kenya AA Nyeri', roaster: 'Onyx', roast_level: 'Light' as const },
       brew_method: 'AeroPress' as const,
-      roast_level: 'Light' as const,
       flavor_notes: 'blackcurrant, tomato',
       rating: 4,
     };
@@ -64,8 +62,37 @@ describe('brewCardLabel', () => {
   });
 
   it('leaves out what the brew does not have', () => {
-    const brew = { ...BASE_BREW, coffee_name: 'House Blend', brew_method: 'Espresso' as const };
+    const brew = { ...BASE_BREW, coffee: { ...BASE_COFFEE, name: 'House Blend' }, brew_method: 'Espresso' as const };
     expect(brewCardLabel(brew, 'Oct 11, 2026')).toBe('House Blend, Espresso, Oct 11, 2026');
+  });
+});
+
+describe('coffeeCardLabel', () => {
+  const stats = { brewCount: 4, avgRating: 4.25, lastBrewedAt: null, gramsUsed: 70, gramsLeft: 30, runningLow: true };
+
+  it('reads a coffee card as one sentence', () => {
+    const coffee = { ...BASE_COFFEE, name: 'Kenya AA', roaster: 'Sey', roast_level: 'Light' as const, roast_date: '2026-10-05' };
+    expect(coffeeCardLabel(coffee, stats, 7)).toBe(
+      'Kenya AA, Sey, Light roast, roasted 7 days ago, 4 brews, averaging 4.3 out of 5 stars, 30 grams left, running low',
+    );
+  });
+
+  it('says what a new bag does not have yet', () => {
+    const fresh = { brewCount: 0, avgRating: null, lastBrewedAt: null, gramsUsed: 0, gramsLeft: null, runningLow: false };
+    expect(coffeeCardLabel({ ...BASE_COFFEE, name: 'House Blend' }, fresh, null)).toBe('House Blend, no brews yet');
+    expect(coffeeCardLabel({ ...BASE_COFFEE, name: 'House Blend' }, { ...fresh, brewCount: 1 }, 0)).toBe(
+      'House Blend, roasted today, 1 brew',
+    );
+    expect(coffeeCardLabel({ ...BASE_COFFEE, name: 'House Blend' }, { ...fresh, brewCount: 1 }, 1)).toBe(
+      'House Blend, roasted 1 day ago, 1 brew',
+    );
+  });
+
+  it('says when a coffee is finished instead of what is left', () => {
+    const coffee = { ...BASE_COFFEE, name: 'Kenya AA', finished_at: '2026-10-10T00:00:00Z' };
+    expect(coffeeCardLabel(coffee, stats, 20)).toBe(
+      'Kenya AA, roasted 20 days ago, 4 brews, averaging 4.3 out of 5 stars, finished',
+    );
   });
 });
 

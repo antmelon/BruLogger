@@ -69,6 +69,20 @@ export function ImageIcon({ size = defaults.size, color = defaults.color, stroke
   );
 }
 
+/** A coffee bag with a bean on it: the Coffees tab. */
+export function BagIcon({ size = defaults.size, color = defaults.color, strokeWidth = defaults.strokeWidth }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Bag, with its folded top */}
+      <Path d="M7 3h10l1.5 4v12a2 2 0 01-2 2h-9a2 2 0 01-2-2V7L7 3z" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
+      <Path d="M5.5 7h13" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      {/* Bean */}
+      <Path d="M12 10.5c-1.9 0-3 1.6-3 3.5s1.1 3.5 3 3.5 3-1.6 3-3.5-1.1-3.5-3-3.5z" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M12.6 10.6c-1 1-1.2 2.2-.6 3.4.6 1.2.4 2.4-.6 3.4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export function StarIcon({ size = defaults.size, color = defaults.color, strokeWidth = defaults.strokeWidth }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
