@@ -52,8 +52,15 @@ Every content question is "None" or "No", which rates the app 4+. Two answers wo
 
 The terms still require users to be 13 or older. That's about collecting children's data, not about the content rating.
 
-## Still to do before the first submission
+## Screenshots
 
-- **iPad:** decided 2026-10-11 to ship iPhone-only for now (`ios.supportsTablet: false`), so no iPad screenshots are needed and iPads run the iPhone app scaled up. Supporting iPad later means checking the layout on iPad and adding 13-inch iPad screenshots.
-- **Screenshots:** at least one set for 6.9-inch iPhones (1320 × 2868), up to 10, taken from a real build with good-looking sample brews: My Brews, a brew with its flavor radar, logging a brew, Analytics.
-- **Enter the App Review information and App Privacy answers** above, then run `eas metadata:push`.
+One set for 6.9-inch iPhones (1320 × 2868), which App Store Connect also uses for smaller iPhones. EAS Metadata can't upload screenshots, so they're added by hand in App Store Connect. The first three show in search results, so order matters. The 1.0 set, taken 2026-10-12 from a TestFlight build on an iPhone 17 Pro, uses real brews: My Brews, a brew's photo, its flavor chart and notes, Analytics, the average flavor profile, and the edit form's flavor sliders. An iPhone 17 Pro screenshot is 1206 × 2622 (6.3-inch). Scaled to 1320 wide it's 1320 × 2870, so a pixel comes off the top and bottom. Save them as sRGB without an alpha channel.
+
+iPhone-only for now (decided 2026-10-11, `ios.supportsTablet: false`), so no iPad screenshots are needed and iPads run the iPhone app scaled up. Supporting iPad later means checking the layout on iPad and adding 13-inch iPad screenshots.
+
+## Submitting a version
+
+1. Upload the build: `npx eas-cli build --platform ios --profile production`, then `npx eas-cli submit --platform ios --latest`.
+2. Push the listing: `npx eas-cli metadata:push`.
+3. In App Store Connect, on the version's page: screenshots, the build, App Review information (above), and for the first version also App Privacy (above), Pricing and Availability (Free), and Content Rights (no third-party content).
+4. Add for Review, then Submit. `automaticRelease` is off in `store.config.json`, so an approved version waits until it's released by hand.
