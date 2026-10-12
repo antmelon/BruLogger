@@ -437,12 +437,12 @@ The iPhone app is built and submitted with [EAS](https://docs.expo.dev/eas/), Ex
 ```sh
 npx eas-cli build --platform ios --profile production   # cloud build, signed with EAS-managed Apple credentials
 npx eas-cli submit --platform ios --latest              # upload to App Store Connect (TestFlight, then review)
-npx eas-cli update --channel production --message "…"   # ship a JavaScript-only fix to installed apps
+npx eas-cli update --channel production --environment production --platform ios --message "…"   # ship a JavaScript-only fix to installed apps
 npx eas-cli metadata:push                               # push the listing in store.config.json
 ```
 
 - **Versions:** `version` in `app.json` is the version people see (1.0.0). EAS keeps the build number and increments it on every production build (`appVersionSource: remote`, `autoIncrement`).
-- **Over-the-air updates** (`expo-updates`): installed apps check for an update on launch and apply it on the next start. Updates only reach builds with the same `runtimeVersion`, which follows the app version (`policy: appVersion`). Anything that changes native code (a new native module, a config plugin, permissions) needs a new build, with `version` raised first. Otherwise a JavaScript update could reach a build that lacks the native code it needs.
+- **Over-the-air updates** (`expo-updates`): installed apps check for an update on launch and apply it on the next start. `eas update` bundles the app on your machine, so `--environment production` is required: without it, the bundle gets `.env.local`'s values, which point at the dev Supabase project. Updates only reach builds with the same `runtimeVersion`, which follows the app version (`policy: appVersion`). Anything that changes native code (a new native module, a config plugin, permissions) needs a new build, with `version` raised first. Otherwise a JavaScript update could reach a build that lacks the native code it needs.
 - **Build settings:** the `production` profile in `eas.json` uses the EAS `production` environment, whose variables are the same public values the website uses: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` and `EXPO_PUBLIC_SENTRY_DSN`. It also needs `SENTRY_AUTH_TOKEN` (a secret) to upload debug symbols to Sentry. Manage them with `npx eas-cli env:list` and `env:create`, or on expo.dev.
 - **iOS settings in `app.json`:** camera and photo library permission messages (no microphone), Sign in with Apple (`usesAppleSignIn`), and `usesNonExemptEncryption: false`. The app only uses standard HTTPS encryption, which spares answering the export compliance question on every upload.
 
