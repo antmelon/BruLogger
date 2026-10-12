@@ -24,11 +24,11 @@ Live at **[brulogger.vercel.app](https://brulogger.vercel.app)**. The same codeb
 - **Browse your history**: search by coffee, roaster, origin or flavor notes; filter by method, roast or minimum rating; sort by date, rating or name.
 - **Analytics**: total brews, average rating, favorite method, rating over time, brews by method and roast level, and your average flavor profile.
 - **Log from Telegram**: send the bot something like *"V60, Guji natural, 15g/250g, 3:10, blueberry, 4.5 stars"*, a photo of the bag, a photo of the cup, or any mix. It drafts the brew, asks you to confirm, and saves it. It can also fix or delete a logged brew and answer questions about past ones.
-- **Private**: you sign in with Google, and each account sees only its own brews.
+- **Private**: you sign in with Apple or Google, and each account sees only its own brews.
 
 ## Architecture
 
-There is no custom backend for the app. It talks directly to Supabase, and Postgres row-level security keeps each user's data separate. The only server code is a small HTTP API on Vercel for the Telegram bot.
+There is no custom backend for the app. It talks directly to Supabase, and Postgres row-level security keeps each user's data separate. The only server code is a small HTTP API on Vercel, for the Telegram bot and for revoking Sign in with Apple when an account is deleted.
 
 ```mermaid
 flowchart LR
@@ -41,11 +41,11 @@ flowchart LR
 
   subgraph vercel [Vercel]
     web["Static web build"]
-    api["/api/brews<br/>Node functions"]
+    api["/api<br/>Node functions"]
   end
 
   subgraph supabase [Supabase]
-    auth["Auth<br/>Google sign-in"]
+    auth["Auth<br/>Apple and Google sign-in"]
     db[("Postgres<br/>brews table")]
     storage[("Storage<br/>brew-photos bucket")]
   end
@@ -56,6 +56,7 @@ flowchart LR
   app -- sign in --> auth
   app -- "your session<br/>(row-level security)" --> db
   app -- upload / delete --> storage
+  app -. "revoke Sign in with Apple<br/>(deleting an account)" .-> api
   bot -- bearer token --> api
   api -- service role --> db
   api --> storage
@@ -66,7 +67,7 @@ flowchart LR
 | App | [Expo](https://expo.dev) SDK 57 (React Native 0.86, React 19), [Expo Router](https://docs.expo.dev/router/introduction/), React Native Web |
 | Data fetching | [TanStack Query](https://tanstack.com/query) on top of [supabase-js](https://supabase.com/docs/reference/javascript) |
 | Charts | Hand-drawn with `react-native-svg` (no chart library) |
-| Backend | [Supabase](https://supabase.com): Postgres, Auth (Google OAuth), Storage |
+| Backend | [Supabase](https://supabase.com): Postgres, Auth (Apple and Google sign-in), Storage |
 | Hosting and API | [Vercel](https://vercel.com): the static web build plus Node functions in `api/` |
 | Telegram bot | A [Hermes](https://github.com/NousResearch/hermes-agent) agent with the skill in [`integrations/hermes/log-brew`](integrations/hermes/log-brew/SKILL.md) |
 | Crash reports | [Sentry](https://sentry.io), in the app (`lib/sentry.ts`) and the API (`server/api.ts`), production only |
@@ -82,7 +83,8 @@ flowchart TD
   gate{"Signed in?"}
   gate -- no --> landing["Landing page<br/>/"]
   landing --> login["Login<br/>/login"]
-  login -- Google --> callback["OAuth callback<br/>/auth/callback (web)"]
+  login -- "Apple or Google (web),<br/>Google (app)" --> callback["OAuth callback<br/>/auth/callback (web)"]
+  login -- "Apple (iPhone)" --> list
   callback --> list
   gate -- yes --> list
 
@@ -121,27 +123,46 @@ Until there's a Play Store version, Android users install the website as an app.
 
 ### Sign-in
 
-Sign-in is Google-only, through Supabase Auth with the PKCE flow. The redirect carries a one-time code that only the device that started the sign-in can exchange, never the tokens themselves.
+You sign in with Apple or Google, through Supabase Auth. There are no passwords. Signing in through a web page (Google everywhere, Apple on the website) uses the PKCE flow: the redirect carries a one-time code that only the device that started the sign-in can exchange, never the tokens themselves.
 
 ```mermaid
 sequenceDiagram
   actor you as You
   participant app as App
   participant auth as Supabase Auth
-  participant google as Google
+  participant google as Apple or Google
 
-  you->>app: Continue with Google
+  you->>app: Continue with Apple or Google
   app->>app: Create a code verifier and keep it on the device
   app->>auth: Start OAuth with the code challenge
   auth->>google: Sign-in and consent
-  google-->>auth: Your Google identity
+  google-->>auth: Your identity
   auth-->>app: Redirect to /auth/callback?code=…
   app->>auth: Exchange the code + verifier
   auth-->>app: Session (access and refresh tokens)
   app->>you: My Brews
 ```
 
-On the web, the browser returns to `/auth/callback` and supabase-js does the exchange there. On iOS and Android, the login screen opens an in-app browser, receives the `brulogger://auth/callback?code=…` redirect, and does the exchange itself. On native, the session token's refresh timer is restarted whenever the app comes back to the foreground.
+On the web, the browser returns to `/auth/callback` and supabase-js does the exchange there. For Google on iOS and Android, the login screen opens an in-app browser, receives the `brulogger://auth/callback?code=…` redirect, and does the exchange itself. On native, the session token's refresh timer is restarted whenever the app comes back to the foreground.
+
+**Sign in with Apple on iPhone** doesn't use a browser. The login screen shows Apple's own button, which opens the system's Apple sheet (Face ID). Apple returns a signed identity token, and the app hands it to Supabase (`signInWithIdToken`, in `lib/appleSignIn.ts`). A nonce stops a stolen token from being replayed: Apple signs the nonce's hash into the token, and Supabase checks it against the raw value only the app has. Apple shares the person's name only the first time they sign in, and not in the token, so the app saves it to the account then. The Android app doesn't offer Apple (Android users use the website).
+
+**Deleting an Apple account.** Apple asks apps to revoke their Sign in with Apple access when an account is deleted. On iPhone, Delete Account first has the person confirm with Apple, which gives a fresh authorization code. `POST /api/apple/revoke` trades it for Apple's refresh token and revokes that, using Apple's signing key, which only the server has. Only then does the app delete the photos and the account, so closing the Apple sheet or a failed revocation leaves everything as it was. The website can't get that code, so deleting there leaves BruLogger listed in the person's Apple Account settings, where they can remove it themselves.
+
+**Setup.** These live outside the repo:
+
+- **Apple Developer portal:**
+  - The App ID `com.antmelon.brulogger` has the Sign in with Apple capability. EAS turns it on when it builds, because `app.json` sets `usesAppleSignIn`.
+  - The Services ID `com.antmelon.brulogger.web` is what the website signs in as. Its Sign in with Apple settings use that App ID as the primary one, with each Supabase project's domain (`<ref>.supabase.co`) and return URL (`https://<ref>.supabase.co/auth/v1/callback`), production and dev.
+  - A Sign in with Apple key, with that App ID as primary. Its `.p8` file can only be downloaded once, so it's kept in a password manager.
+- **Supabase, both projects** (Authentication → Sign In / Providers → Apple): enabled, with Client IDs `com.antmelon.brulogger.web,com.antmelon.brulogger`. The Services ID goes first, because the website's sign-in uses the first one; the bundle ID is for the iPhone app's identity tokens. The Secret Key is the website's client secret (below).
+- **Vercel Production:** `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` (the `.p8` file's contents), for revoking.
+
+**Renewing the website's client secret.** The website's Apple sign-in needs a client secret: a JWT signed with the key, which Apple won't accept for longer than 6 months. When it expires, Continue with Apple fails on the website. The iPhone app and revoking keep working, because they don't use it. Before it expires, make a new one and paste it into both Supabase projects' Apple settings:
+
+```sh
+npm run -s apple:secret -- <team ID> <key ID> <path to AuthKey_XXXX.p8> | wl-copy   # valid 180 days
+```
 
 ## Crash reports
 
@@ -224,7 +245,8 @@ The schema lives in [`supabase/migrations/`](supabase/migrations), and `types/da
 
 - **Row-level security** on `brews`: a signed-in user can read, create, update and delete only rows whose `user_id` is their own, and can't move a brew to another user.
 - **Private photos**: the `brew-photos` bucket isn't public. Storage policies let users upload, read and delete only files in their own folder, and the app displays a photo through a signed link that expires after an hour. The bucket only accepts images up to 5 MB.
-- **Account deletion**: Profile → Delete Account removes everything the user has stored. The app first deletes every file in their photo folder through the Storage API (SQL can't delete storage files), then calls the `delete_account()` database function, which deletes the user's auth account; their brews go with it (`on delete cascade`). Only signed-in users can call the function, and it only deletes the caller. If the photos can't be deleted, the account is left alone so the user can try again.
+- **Account deletion**: Profile → Delete Account removes everything the user has stored. The app first deletes every file in their photo folder through the Storage API (SQL can't delete storage files), then calls the `delete_account()` database function, which deletes the user's auth account; their brews go with it (`on delete cascade`). Only signed-in users can call the function, and it only deletes the caller. If the photos can't be deleted, the account is left alone so the user can try again. On iPhone, an Apple account's Sign in with Apple access is revoked first (see Sign-in).
+- **Apple's signing key** stays on the server (Vercel Production env), never in the app. `/api/apple/revoke` only answers callers with a valid Supabase session.
 - **The anon key** in the app is public by design. It grants nothing beyond what row-level security allows.
 - **The bot API** uses a single bearer token that maps to one configured user, and writes with Supabase's service role key, which bypasses row-level security. So the API handlers themselves limit every query to that user. The token is compared in constant time.
 
@@ -341,6 +363,7 @@ Notes for running on a phone:
 
 - **Expo Go:** for an SDK 57 project, you have to be logged into the same Expo account in the CLI (`npx expo login`) and in the Expo Go app.
 - **Redirect URLs:** Google sign-in needs the app's redirect allowed under the Supabase project's Authentication → URL Configuration: `exp://**` for Expo Go, `brulogger://**` for native builds.
+- **Sign in with Apple** in Expo Go would need `host.exp.Exponent` added to the Supabase project's Apple Client IDs, since Expo Go's tokens are issued to it. It's simpler to test Apple in a TestFlight build.
 
 ### Checks
 
@@ -402,6 +425,7 @@ flowchart LR
 | `BRULOGGER_USER_ID` | API: the account the bot writes to | Production |
 | `EXPO_PUBLIC_SENTRY_DSN` | App: where crash reports go (built into the bundle; unset means off) | Production |
 | `SENTRY_DSN` | API: where error reports go | Production |
+| `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | API: Apple's Sign in with Apple key (`.p8` contents), for revoking it when an account is deleted | Production |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Build: uploading web source maps to Sentry | Production |
 
 `EXPO_PUBLIC_*` values are compiled into the web bundle at build time, so changing one needs a redeploy. The dev Supabase project is on the free plan and pauses after a week without use. If a preview fails with `ERR_NAME_NOT_RESOLVED`, restore the project from the Supabase dashboard.
@@ -420,7 +444,7 @@ npx eas-cli metadata:push                               # push the listing in st
 - **Versions:** `version` in `app.json` is the version people see (1.0.0). EAS keeps the build number and increments it on every production build (`appVersionSource: remote`, `autoIncrement`).
 - **Over-the-air updates** (`expo-updates`): installed apps check for an update on launch and apply it on the next start. Updates only reach builds with the same `runtimeVersion`, which follows the app version (`policy: appVersion`). Anything that changes native code (a new native module, a config plugin, permissions) needs a new build, with `version` raised first. Otherwise a JavaScript update could reach a build that lacks the native code it needs.
 - **Build settings:** the `production` profile in `eas.json` uses the EAS `production` environment, whose variables are the same public values the website uses: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` and `EXPO_PUBLIC_SENTRY_DSN`. It also needs `SENTRY_AUTH_TOKEN` (a secret) to upload debug symbols to Sentry. Manage them with `npx eas-cli env:list` and `env:create`, or on expo.dev.
-- **iOS settings in `app.json`:** camera and photo library permission messages (no microphone), and `usesNonExemptEncryption: false`. The app only uses standard HTTPS encryption, which spares answering the export compliance question on every upload.
+- **iOS settings in `app.json`:** camera and photo library permission messages (no microphone), Sign in with Apple (`usesAppleSignIn`), and `usesNonExemptEncryption: false`. The app only uses standard HTTPS encryption, which spares answering the export compliance question on every upload.
 
 The listing and the rest of the submission are in [`docs/app-store.md`](docs/app-store.md).
 
@@ -428,7 +452,7 @@ The listing and the rest of the submission are in [`docs/app-store.md`](docs/app
 
 Supabase's free plan has no backups, and its paid backups leave out Storage files anyway. So a home server backs up production every night at 23:15:
 
-- **Database:** a `pg_dump` (custom format), signed in as `brulogger_backup`, a read-only role. It covers the `public`, `auth` and `storage` schemas: brews, accounts and linked Google identities, and the bucket and photo records. Sign-in sessions, refresh tokens, MFA claims and the auth audit log are left out, so a leaked dump can't be used to sign in. After a restore, people sign in again. Before a dump is kept, it must list the `brews` data.
+- **Database:** a `pg_dump` (custom format), signed in as `brulogger_backup`, a read-only role. It covers the `public`, `auth` and `storage` schemas: brews, accounts and linked Apple and Google identities, and the bucket and photo records. Sign-in sessions, refresh tokens, MFA claims and the auth audit log are left out, so a leaked dump can't be used to sign in. After a restore, people sign in again. Before a dump is kept, it must list the `brews` data.
 - **Photos:** the `brew-photos` bucket is mirrored with rclone over Supabase Storage's S3 endpoint.
 - **Retention:** 14 days of dumps on the server. The server's own encrypted restic backup copies them off-site every night and keeps months of history.
 - **Failures** send a Telegram message.
@@ -446,7 +470,7 @@ The job itself is defined in the server's own configuration, not in this repo.
    pg_restore --data-only --no-owner --schema=public --table=brews -d "$NEW_DB_URL" brulogger-<date>.dump
    ```
 3. Upload the photos to the same paths: `rclone copy photos/ <new-project-remote>:brew-photos`.
-4. Point the app at the new project: the Vercel environment variables, `.env.local`, and the Google provider and redirect URLs in Supabase Auth.
+4. Point the app at the new project: the Vercel environment variables, `.env.local`, the EAS `production` environment, and Supabase Auth's Apple and Google providers and redirect URLs. Add its callback URL to the Apple Services ID too.
 
 **Undoing a mistake** (a bad migration, deleted brews): restore the dump into a throwaway Postgres (`pg_restore --no-owner --no-acl`; errors about Supabase's roles are expected), then copy the rows you need back.
 
@@ -458,7 +482,7 @@ Restoring a dump into plain Postgres has been tested. A full restore into a new 
 app/                    Screens (Expo Router: one file per route)
   _layout.tsx           Auth gate, data cache provider
   index.tsx             Landing page
-  (auth)/login.tsx      Google sign-in
+  (auth)/login.tsx      Apple and Google sign-in
   auth/callback.tsx     Finishes web sign-in
   (tabs)/               My Brews, Analytics, Profile
   (public)/             Privacy policy, terms, support (no sign-in needed)
@@ -467,6 +491,7 @@ components/             BrewForm, RadarChart, StarRating, SliderInput, LegalPage
 lib/
   brews.ts              Data access: the only place that queries Supabase for brews
   account.ts            Account deletion
+  appleSignIn.ts        Sign in with Apple on iPhone, and revoking it
   crashReports.ts       Scrubs secrets out of crash reports
   sentry.ts             Starts crash reporting (production only)
   authGate.ts           Which screens need sign-in (used by the root layout)
@@ -482,7 +507,9 @@ lib/
   supabase.ts           Supabase client
   theme.ts              Color and shadow tokens
 api/brews/              Vercel functions: index.ts (list, create), [id].ts (get, update, delete)
+api/apple/revoke.ts     Vercel function: revokes Sign in with Apple when an account is deleted
 server/api.ts           Shared API helpers: auth, responses, photos
+server/apple.ts         Apple client secrets and token revocation
 eas.json                EAS build and submit profiles (iOS releases)
 store.config.json       App Store listing (EAS Metadata); docs/app-store.md covers the rest
 public/                 Copied into the web build: page template, web app manifest and icons, service worker, offline page
@@ -490,7 +517,7 @@ types/                  Generated database types and the app's Brew types
 supabase/migrations/    Database schema
 integrations/hermes/    The Telegram agent's skill
 __tests__/              Jest tests
-scripts/                Icon generation
+scripts/                Icon generation, web build, Apple client secret
 ```
 
 For agents working in this repo, [`CLAUDE.md`](CLAUDE.md) has the conventions and gotchas. [`CONTEXT.md`](CONTEXT.md) defines the domain terms.

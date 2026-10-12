@@ -34,6 +34,7 @@ describe('theme contrast', () => {
 
   it('white text on buttons is readable', () => {
     expect(contrast(colors.surface, colors.primary)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.surface, colors.apple)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('chart lines and bars stand out from the card (WCAG graphics, 3:1)', () => {

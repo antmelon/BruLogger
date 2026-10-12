@@ -16,6 +16,7 @@ export const colors = {
   error: '#C63636',
   accent: '#BC8757',
   primaryFaded: 'rgba(139, 90, 43, 0.25)',
+  apple: '#000000', // Sign in with Apple button: Apple's guidelines make it black (or white)
   shadow: '#000000',
 } as const;
 

@@ -5,11 +5,20 @@ const mockSignOut = jest.fn();
 const mockRpc = jest.fn();
 const mockList = jest.fn();
 const mockRemove = jest.fn();
+const mockAppleSignIn = jest.fn();
+const mockFetch = jest.fn();
+
+jest.mock('expo-apple-authentication', () => ({
+  signInAsync: (...args: unknown[]) => mockAppleSignIn(...args),
+}));
+
+global.fetch = mockFetch;
 
 jest.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       getUser: () => mockGetUser(),
+      getSession: async () => ({ data: { session: { access_token: 'session-token' } } }),
       signOut: (...args: unknown[]) => mockSignOut(...args),
     },
     rpc: (...args: unknown[]) => mockRpc(...args),
@@ -49,7 +58,7 @@ describe('deleteAccount', () => {
   it("deletes the user's photos, then their account", async () => {
     givenFolders({ 'user-1': [file('1.jpg'), file('2.png')] });
 
-    await deleteAccount();
+    await expect(deleteAccount()).resolves.toBe(true);
 
     expect(mockRemove).toHaveBeenCalledWith(['user-1/1.jpg', 'user-1/2.png']);
     expect(mockRpc).toHaveBeenCalledWith('delete_account');
@@ -104,5 +113,56 @@ describe('deleteAccount', () => {
 
     await expect(deleteAccount()).rejects.toBe(dbError);
     expect(mockSignOut).not.toHaveBeenCalled();
+  });
+});
+
+describe('deleteAccount for someone who signed in with Apple', () => {
+  beforeEach(() => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1', identities: [{ provider: 'apple' }] } },
+    });
+    givenFolders({ 'user-1': [file('1.jpg')] });
+    mockAppleSignIn.mockResolvedValue({ authorizationCode: 'apple-code' });
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+  });
+
+  it("has them confirm with Apple, and revokes BruLogger's access before deleting anything", async () => {
+    await expect(deleteAccount()).resolves.toBe(true);
+
+    expect(mockAppleSignIn).toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledWith('https://www.brulogger.com/api/apple/revoke', {
+      method: 'POST',
+      headers: { authorization: 'Bearer session-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'apple-code' }),
+    });
+    expect(mockFetch.mock.invocationCallOrder[0]).toBeLessThan(mockRemove.mock.invocationCallOrder[0]);
+    expect(mockRpc).toHaveBeenCalledWith('delete_account');
+  });
+
+  it('deletes nothing when they close the Apple sheet', async () => {
+    mockAppleSignIn.mockRejectedValue(Object.assign(new Error('canceled'), { code: 'ERR_REQUEST_CANCELED' }));
+
+    await expect(deleteAccount()).resolves.toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("keeps the account when Apple's access can't be revoked", async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 502 }));
+
+    await expect(deleteAccount()).rejects.toThrow();
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("doesn't involve Apple for a Google account", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1', identities: [{ provider: 'google' }] } },
+    });
+
+    await expect(deleteAccount()).resolves.toBe(true);
+    expect(mockAppleSignIn).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

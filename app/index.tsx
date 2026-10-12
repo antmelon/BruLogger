@@ -85,7 +85,7 @@ export default function LandingScreen() {
           activeOpacity={0.85}
           role="button"
         >
-          <Text style={styles.secondaryButtonText}>Sign in with Google</Text>
+          <Text style={styles.secondaryButtonText}>Sign in</Text>
         </TouchableOpacity>
       </View>
 

@@ -2,9 +2,10 @@ import LegalPage, { LegalSection } from '../../components/LegalPage';
 
 // Linked from the landing page, sign-in, Profile, and the App Store listing (as
 // https://brulogger.com/privacy). Keep it true to what the app does: update it, and the date,
-// before shipping anything that collects something new (crash reports, AI photo parsing).
+// before shipping anything that collects something new (AI photo parsing, another sign-in
+// provider).
 
-const UPDATED = 'October 11, 2026';
+const UPDATED = 'October 12, 2026';
 
 const INTRO = [
   'BruLogger is a coffee journal. This policy explains what BruLogger stores about you, why, who else handles it, and how to delete it.',
@@ -15,7 +16,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'What we store',
     bullets: [
-      'Your account. When you sign in with Google, Google shares your name, email address and profile picture with us, along with an ID that links your Google account to BruLogger.',
+      'Your account. When you sign in with Apple, Apple shares your email address (or, if you choose Hide My Email, a private address that forwards to yours) and, if you choose to share it, your name. When you sign in with Google, Google shares your name, email address and profile picture. Either way, we also get an ID that links that account to BruLogger.',
       'Your brews. Everything you enter: the coffee, how you brewed it, ratings, flavor profiles and notes, and when you logged each brew.',
       'Your photos. Photos you add to brews are stored privately. Only your account can see them, through links that expire after an hour.',
       'Technical logs. Our hosting and sign-in providers record technical details such as IP address, browser or device type, and the time of each request, to keep the service running and secure. These logs are kept for a short time.',
@@ -45,7 +46,7 @@ const SECTIONS: LegalSection[] = [
     bullets: [
       'Supabase: the database, sign-in and photo storage.',
       'Vercel: hosts the website and its servers.',
-      'Google: signs you in, under Google\'s own privacy policy.',
+      'Apple and Google: sign you in, under their own privacy policies.',
       'Backblaze: stores our encrypted backups.',
       'Sentry: receives crash reports.',
     ],
@@ -65,7 +66,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'Deleting your account',
     paragraphs: [
-      'In the app or at brulogger.com, go to Profile and choose Delete Account. That permanently deletes your account, your brews and your photos.',
+      'In the app or at brulogger.com, go to Profile and choose Delete Account. That permanently deletes your account, your brews and your photos. If you signed in with Apple, the iPhone app also asks you to confirm with Apple, then removes BruLogger from the apps using your Apple Account. If you delete your account on the website, you can remove BruLogger there yourself, in your Apple Account settings under Sign in with Apple.',
       'If you can\'t sign in, email privacy@brulogger.com from the address on your account and we\'ll delete it for you.',
     ],
   },

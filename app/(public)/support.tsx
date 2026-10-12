@@ -3,7 +3,7 @@ import LegalPage, { LegalSection } from '../../components/LegalPage';
 // The App Store's required support URL (https://brulogger.com/support). Keep the answers true to
 // the app: when sign-in options or platforms change, update them here too.
 
-const UPDATED = 'October 11, 2026';
+const UPDATED = 'October 12, 2026';
 
 const INTRO = [
   'Need help with BruLogger, or found something broken? Email support@brulogger.com and you\'ll usually hear back within a few days.',
@@ -17,7 +17,8 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'How do I sign in?',
     paragraphs: [
-      'With your Google account. BruLogger never sees your Google password, and your brews are saved to your BruLogger account.',
+      'With your Apple or Google account. BruLogger never sees your password, and your brews are saved to your BruLogger account.',
+      'Use the same one each time. If you sign in with Apple and choose Hide My Email, BruLogger gets a different address from your Google one, so signing in with Google would give you a second, empty account.',
     ],
   },
   {
@@ -45,7 +46,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'How do I delete my account?',
     paragraphs: [
-      'Go to Profile and choose Delete Account. It permanently deletes your account, brews and photos. If you can\'t sign in, email privacy@brulogger.com from the address on your account.',
+      'Go to Profile and choose Delete Account. It permanently deletes your account, brews and photos. If you signed in with Apple, the iPhone app asks you to confirm with Apple first. If you can\'t sign in, email privacy@brulogger.com from the address on your account.',
     ],
   },
   {
