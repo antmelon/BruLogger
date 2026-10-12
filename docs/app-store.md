@@ -4,7 +4,7 @@ What the App Store listing says and how to fill in the parts of App Store Connec
 
 ## Listing (`store.config.json`)
 
-The name, subtitle, description, keywords, promotional text, URLs, categories (Food & Drink, then Lifestyle) and age rating answers are in [`store.config.json`](../store.config.json), in [EAS Metadata](https://docs.expo.dev/eas/metadata/) format. Once the app exists in App Store Connect, push them with `npx eas-cli metadata:push`, or pull what's there with `metadata:pull`. Apple's limits: name and subtitle 30 characters, keywords 100 characters in total, promotional text 170, description 4000.
+The name, subtitle, description, keywords, promotional text, URLs, categories (Food & Drink, then Lifestyle) and age rating answers are in [`store.config.json`](../store.config.json), in [EAS Metadata](https://docs.expo.dev/eas/metadata/) format. Once the app exists in App Store Connect, push them with `npx eas-cli metadata:push`, or pull what's there with `metadata:pull`. Its `version` is the App Store version they're pushed to. It must match `app.json`'s `version`, and a test checks that. Without it, `metadata:push` fails with "You must provide a value for the attribute 'versionString'". Apple's limits: name and subtitle 30 characters, keywords 100 characters in total, promotional text 170, description 4000.
 
 The keywords skip words that are already in the name or subtitle (coffee, journal, log, rate, brew), because Apple indexes those anyway.
 
