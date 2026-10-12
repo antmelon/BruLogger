@@ -84,10 +84,16 @@ where c.user_id = b.user_id
   and lower(c.name) = lower(trim(b.coffee_name))
   and lower(coalesce(c.roaster, '')) = lower(coalesce(trim(b.roaster), ''));
 
--- A brew saved without a coffee (by app 1.0.0), or whose coffee name or roaster it changed, is
--- linked to the user's coffee with that name and roaster, preferring one still in use, or to a
--- new coffee made from the brew's details. Then the brew's copies are set from its coffee. So
--- 1.0.0 edits to the other details of an existing brew don't stick: they belong to the coffee.
+-- Brews saved by app 1.0.0 come with coffee details and no coffee:
+-- - A new brew is linked to the user's coffee with that name and roaster, preferring one still in
+--   use, or to a new coffee made from its details. Details it gives are the latest word on that
+--   coffee; ones it leaves blank come from the coffee.
+-- - An edit that changes the name or roaster moves the brew to that coffee (found or made the same
+--   way), and the brew takes that coffee's details.
+-- - An edit to the other details (origin, roast level, varietal, process) is an edit to the coffee.
+-- brews_details_to_coffee passes those details on to the coffee, and coffees_copy_to_brews from
+-- there to its other brews. Brews saved by the app or the API come with a coffee_id and take its
+-- details.
 create function public.brews_link_coffee()
 returns trigger
 language plpgsql
@@ -95,11 +101,16 @@ set search_path = ''
 as $$
 declare
   c public.coffees;
+  keep_details boolean := false; -- the brew's details stand, and go on to the coffee
 begin
   -- Copies being written by coffees_copy_to_brews
   if pg_trigger_depth() > 1 then
     return new;
   end if;
+
+  new.origin := nullif(trim(new.origin), '');
+  new.varietal := nullif(trim(new.varietal), '');
+  new.processing_method := nullif(trim(new.processing_method), '');
 
   if new.coffee_id is null
      or (tg_op = 'UPDATE'
@@ -121,10 +132,15 @@ begin
         (user_id, name, roaster, origin, roast_level, varietal, processing_method)
       values (
         new.user_id, trim(new.coffee_name), nullif(trim(new.roaster), ''),
-        nullif(trim(new.origin), ''), new.roast_level, nullif(trim(new.varietal), ''),
-        nullif(trim(new.processing_method), '')
+        new.origin, new.roast_level, new.varietal, new.processing_method
       )
       returning * into c;
+    elsif tg_op = 'INSERT' then
+      new.origin := coalesce(new.origin, c.origin);
+      new.roast_level := coalesce(new.roast_level, c.roast_level);
+      new.varietal := coalesce(new.varietal, c.varietal);
+      new.processing_method := coalesce(new.processing_method, c.processing_method);
+      keep_details := true;
     end if;
     new.coffee_id := c.id;
   else
@@ -132,14 +148,20 @@ begin
     if not found then
       return new; -- not this user's coffee: the foreign key rejects the row
     end if;
+    keep_details := tg_op = 'UPDATE'
+      and new.coffee_id = old.coffee_id
+      and (new.origin, new.roast_level, new.varietal, new.processing_method)
+          is distinct from (old.origin, old.roast_level, old.varietal, old.processing_method);
   end if;
 
   new.coffee_name := c.name;
   new.roaster := c.roaster;
-  new.origin := c.origin;
-  new.roast_level := c.roast_level;
-  new.varietal := c.varietal;
-  new.processing_method := c.processing_method;
+  if not keep_details then
+    new.origin := c.origin;
+    new.roast_level := c.roast_level;
+    new.varietal := c.varietal;
+    new.processing_method := c.processing_method;
+  end if;
   return new;
 end;
 $$;
@@ -149,6 +171,34 @@ create trigger brews_link_coffee
     coffee_id, coffee_name, roaster, origin, roast_level, varietal, processing_method
   on public.brews
   for each row execute function public.brews_link_coffee();
+
+-- Once a brew is saved, details it has that its coffee doesn't (only from app 1.0.0, see above)
+-- go on to the coffee.
+create function public.brews_details_to_coffee()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if pg_trigger_depth() > 1 then
+    return null;
+  end if;
+  update public.coffees
+  set origin = new.origin,
+      roast_level = new.roast_level,
+      varietal = new.varietal,
+      processing_method = new.processing_method
+  where id = new.coffee_id
+    and (origin, roast_level, varietal, processing_method)
+        is distinct from (new.origin, new.roast_level, new.varietal, new.processing_method);
+  return null;
+end;
+$$;
+
+create trigger brews_details_to_coffee
+  after insert or update of origin, roast_level, varietal, processing_method
+  on public.brews
+  for each row execute function public.brews_details_to_coffee();
 
 -- Editing a coffee updates its brews' copies.
 create function public.coffees_copy_to_brews()
