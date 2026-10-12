@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -10,6 +10,9 @@ import { AppleIcon, CoffeeIcon } from '../../components/icons';
 import { SignInConsent } from '../../components/LegalLinks';
 
 WebBrowser.maybeCompleteAuthSession();
+
+// Google's "G", cut from its sign-in button kit (developers.google.com/identity/branding-guidelines)
+const GOOGLE_G = require('../../assets/google-g.png');
 
 type Provider = 'apple' | 'google';
 
@@ -92,8 +95,15 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>Continue with Apple</Text>
           </TouchableOpacity>
         ) : null}
-        <TouchableOpacity style={styles.button} onPress={() => signIn('google')} activeOpacity={0.85} role="button">
-          <Text style={styles.buttonText}>Continue with Google</Text>
+        {/* Google's guidelines: its own "G" on white, gray, or dark, never on a brand color */}
+        <TouchableOpacity
+          style={[styles.button, styles.googleButton]}
+          onPress={() => signIn('google')}
+          activeOpacity={0.85}
+          role="button"
+        >
+          <Image source={GOOGLE_G} style={styles.googleLogo} aria-hidden />
+          <Text style={[styles.buttonText, styles.googleButtonText]}>Continue with Google</Text>
         </TouchableOpacity>
         {error ? <Text style={styles.error} role="alert">{error}</Text> : null}
         <SignInConsent />
@@ -138,6 +148,17 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
+  googleButton: {
+    backgroundColor: colors.surface,
+    paddingVertical: 12, // the border and the 20pt logo make up the difference to the Apple button
+    borderWidth: 1,
+    borderColor: colors.googleBorder,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  googleLogo: { width: 20, height: 20 },
+  googleButtonText: { color: colors.googleText },
   buttonText: { color: colors.surface, fontSize: 16, fontWeight: '600' },
   error: { color: colors.error, fontSize: 14, marginTop: 16, textAlign: 'center' },
 });
