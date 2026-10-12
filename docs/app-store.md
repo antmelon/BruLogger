@@ -16,7 +16,7 @@ Entered in App Store Connect, not kept here, because Apple requires a phone numb
 - **Sign-in required:** no demo account. Reviewers sign in with Apple, which creates a new, empty account.
 - **Notes:**
 
-  > BruLogger is a personal coffee journal. No demo account is needed: sign in with Apple (or Google) on the first screen, which creates a new, empty account. Tap "+ Log Brew" to add a brew; the My Brews, Analytics and Profile tabs fill in as brews are added. Brews and photos are private to each account and never shown to other users. To delete the account and all its data: Profile > Delete Account.
+  > BruLogger is a personal coffee journal. No demo account is needed: sign in with Apple (or Google) on the first screen, which creates a new, empty account. Tap "+ Log Brew" to add a brew; the My Brews, Analytics and Profile tabs fill in as brews are added. Brews and photos are private to each account and never shown to other users. To delete the account and all its data: Profile > Delete Account. For an account that signed in with Apple, the app asks to confirm with Apple, then revokes its Sign in with Apple token before deleting anything.
 
 ## App Privacy (the privacy "nutrition label")
 
@@ -48,13 +48,12 @@ Why each:
 Every content question is "None" or "No", which rates the app 4+. Two answers worth explaining:
 
 - **User-generated content: No.** People do write brews and add photos, but only their author ever sees them. Nothing is shared or shown to other users.
-- **Unrestricted web access: No.** The only in-app browser is the Google or Apple sign-in page.
+- **Unrestricted web access: No.** The only in-app browser is Google's sign-in page (Sign in with Apple uses the system's Apple sheet).
 
 The terms still require users to be 13 or older. That's about collecting children's data, not about the content rating.
 
 ## Still to do before the first submission
 
-- **Sign in with Apple** (guideline 4.8: an app that offers Google sign-in must also offer Apple's or an equivalent). Then update the support page's "How do I sign in?" answer.
 - **iPad:** decided 2026-10-11 to ship iPhone-only for now (`ios.supportsTablet: false`), so no iPad screenshots are needed and iPads run the iPhone app scaled up. Supporting iPad later means checking the layout on iPad and adding 13-inch iPad screenshots.
 - **Screenshots:** at least one set for 6.9-inch iPhones (1320 × 2868), up to 10, taken from a real build with good-looking sample brews: My Brews, a brew with its flavor radar, logging a brew, Analytics.
 - **Enter the App Review information and App Privacy answers** above, then run `eas metadata:push`.

@@ -16,6 +16,10 @@ export const colors = {
   error: '#C63636',
   accent: '#BC8757',
   primaryFaded: 'rgba(139, 90, 43, 0.25)',
+  apple: '#000000', // Sign in with Apple button: Apple's guidelines make it black (or white)
+  // Continue with Google button, in Google's light style (white, with these border and text colors)
+  googleBorder: '#747775',
+  googleText: '#1F1F1F',
   shadow: '#000000',
 } as const;
 

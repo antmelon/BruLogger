@@ -32,11 +32,12 @@ export default function ProfileScreen() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
 
-  // On success the session ends and the auth gate takes the user back to the landing page
+  // On success the session ends and the auth gate takes the user back to the landing page.
+  // Closing the Apple sheet (Apple accounts confirm with Apple first) changes nothing.
   async function performDeleteAccount() {
     setDeleting(true);
     try {
-      await deleteAccount();
+      if (!(await deleteAccount())) setDeleting(false);
     } catch {
       setDeleting(false);
       const message = 'Could not delete your account. Please try again.';

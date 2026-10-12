@@ -2,7 +2,7 @@ import LegalPage, { LegalSection } from '../../components/LegalPage';
 
 // Linked from the landing page, sign-in and Profile (https://brulogger.com/terms).
 
-const UPDATED = 'October 11, 2026';
+const UPDATED = 'October 12, 2026';
 
 const INTRO = [
   'These terms are the agreement between you and Anthony Longo, the independent developer who makes BruLogger ("we"). By using BruLogger, you agree to them. If you don\'t agree, please don\'t use it.',
@@ -18,7 +18,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'Your account',
     paragraphs: [
-      'You need to be at least 13, or the minimum age in your country, to use BruLogger. You sign in with your own Google account, and you\'re responsible for what happens on your BruLogger account. Keep your Google account secure.',
+      'You need to be at least 13, or the minimum age in your country, to use BruLogger. You sign in with your own Apple or Google account, and you\'re responsible for what happens on your BruLogger account. Keep that account secure.',
     ],
   },
   {
