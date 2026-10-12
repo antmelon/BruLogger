@@ -1,18 +1,37 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, TextInput, ScrollView,
+  ActivityIndicator, RefreshControl, TextInput, ScrollView, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Brew, BREW_METHODS, ROAST_LEVELS } from '../../types';
 import { colors, shadows } from '../../lib/theme';
-import { useBrews } from '../../lib/brewQueries';
+import { useBrews, usePhotoUrl } from '../../lib/brewQueries';
 import { activeFilterCount, BrewFilters, DEFAULT_FILTERS, filterBrews } from '../../lib/brewList';
 import StarRating from '../../components/StarRating';
 import { brewCardLabel } from '../../lib/a11y';
 import { CoffeeIcon, SearchIcon } from '../../components/icons';
 
 const NO_BREWS: Brew[] = [];
+
+/**
+ * The brew's photo, or a cup where a brew has none, so every card's text lines up. Decorative:
+ * the card's label already describes the brew. The full photo is loaded and shrunk to fit
+ * (the free Supabase plan can't resize images), through the same signed link the detail screen
+ * uses.
+ */
+function BrewThumbnail({ path }: { path: string | null }) {
+  const { data: url } = usePhotoUrl(path);
+  return (
+    <View style={styles.thumbnail} aria-hidden>
+      {url ? (
+        <Image source={{ uri: url }} style={styles.thumbnailImage} resizeMode="cover" />
+      ) : path ? null : (
+        <CoffeeIcon size={28} color={colors.accent} strokeWidth={1.5} />
+      )}
+    </View>
+  );
+}
 
 function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
   const date = new Date(brew.created_at).toLocaleDateString('en-US', {
@@ -27,34 +46,37 @@ function BrewCard({ brew, onPress }: { brew: Brew; onPress: () => void }) {
       role="button"
       aria-label={brewCardLabel(brew, date)}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardTitles}>
-          <Text style={styles.coffeeName}>{brew.coffee_name}</Text>
-          {brew.roaster ? <Text style={styles.roaster}>{brew.roaster}</Text> : null}
+      <BrewThumbnail path={brew.photo_path} />
+      <View style={styles.cardBody}>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardTitles}>
+            <Text style={styles.coffeeName}>{brew.coffee_name}</Text>
+            {brew.roaster ? <Text style={styles.roaster}>{brew.roaster}</Text> : null}
+          </View>
+          <Text style={styles.date}>{date}</Text>
         </View>
-        <Text style={styles.date}>{date}</Text>
-      </View>
 
-      <View style={styles.tags}>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>{brew.brew_method}</Text>
-        </View>
-        {brew.roast_level ? (
+        <View style={styles.tags}>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>{brew.roast_level}</Text>
+            <Text style={styles.tagText}>{brew.brew_method}</Text>
+          </View>
+          {brew.roast_level ? (
+            <View style={styles.tag}>
+              <Text style={styles.tagText}>{brew.roast_level}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {brew.flavor_notes ? (
+          <Text style={styles.flavorNotes} numberOfLines={2}>{brew.flavor_notes}</Text>
+        ) : null}
+
+        {brew.rating ? (
+          <View style={{ marginTop: 8 }}>
+            <StarRating value={brew.rating} readonly size={16} />
           </View>
         ) : null}
       </View>
-
-      {brew.flavor_notes ? (
-        <Text style={styles.flavorNotes} numberOfLines={2}>{brew.flavor_notes}</Text>
-      ) : null}
-
-      {brew.rating ? (
-        <View style={{ marginTop: 8 }}>
-          <StarRating value={brew.rating} readonly size={16} />
-        </View>
-      ) : null}
     </TouchableOpacity>
   );
 }
@@ -355,8 +377,21 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
+    flexDirection: 'row',
+    gap: 14,
     ...shadows.card,
   },
+  thumbnail: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: colors.surfaceIcon,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  thumbnailImage: { width: '100%', height: '100%' },
+  cardBody: { flex: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   cardTitles: { flex: 1 },
   coffeeName: { fontSize: 16, fontWeight: '700', color: colors.textDark },
