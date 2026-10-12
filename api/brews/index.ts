@@ -3,6 +3,7 @@ import {
   authorize, Context, error, isDryRun, json, parsePhoto, Photo, readJsonObject, removePhoto,
   uploadPhoto, reportError, withErrorReports,
 } from '../../server/api';
+import { discardCoffee, findCoffee, saveCoffee, WITH_COFFEE } from '../../server/coffees';
 
 // HTTP API for logging brews without the app (used by the Hermes Telegram bot). Auth and shared
 // helpers: server/api.ts. One brew by id (GET/PATCH/DELETE): ./[id].ts.
@@ -11,8 +12,13 @@ import {
 //                                          coffee name, roaster and origin
 //   POST /api/brews[?dry_run=1]            JSON brew (see lib/brewInput.ts) + optional
 //                                          photo: { data: <base64>, mime_type: "image/jpeg" }.
-//                                          Idempotency-Key header: a repeat of the same key
-//                                          returns the brew already saved (200, replayed: true)
+//                                          The coffee is coffee_id, or details matched to one
+//                                          of the user's coffees or saved as a new one
+//                                          (server/coffees.ts). Idempotency-Key header: a
+//                                          repeat of the same key returns the brew already
+//                                          saved (200, replayed: true)
+//
+// Brews come back with their coffee (`coffee`).
 
 export const GET = withErrorReports(async (request: Request) => {
   const ctx = authorize(request);
@@ -22,9 +28,10 @@ export const GET = withErrorReports(async (request: Request) => {
   const limit = Math.min(Math.max(Number(params.get('limit')) || 10, 1), 50);
   const since = params.get('since');
 
+  // Inner join, so a search on the coffee's columns leaves out brews whose coffee doesn't match
   let query = ctx.db
     .from('brews')
-    .select('*')
+    .select('*, coffee:coffees!inner(*)')
     .eq('user_id', ctx.userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -36,7 +43,10 @@ export const GET = withErrorReports(async (request: Request) => {
   // Strip PostgREST filter syntax (and wildcards) so q is only ever a substring to match
   const q = (params.get('q') ?? '').replace(/[,()"\\%*]/g, ' ').replace(/\s+/g, ' ').trim();
   if (q) {
-    query = query.or(['coffee_name', 'roaster', 'origin'].map((col) => `${col}.ilike."%${q}%"`).join(','));
+    query = query.or(
+      ['name', 'roaster', 'origin'].map((col) => `${col}.ilike."%${q}%"`).join(','),
+      { referencedTable: 'coffee' },
+    );
   }
 
   const { data, error: dbError } = await query;
@@ -50,7 +60,7 @@ export const GET = withErrorReports(async (request: Request) => {
 /** The user's brew saved under this idempotency key, null if none, or an error Response. */
 async function findByIdempotencyKey(ctx: Context, key: string) {
   const { data, error: dbError } = await ctx.db
-    .from('brews').select('*').eq('user_id', ctx.userId).eq('idempotency_key', key).maybeSingle();
+    .from('brews').select(WITH_COFFEE).eq('user_id', ctx.userId).eq('idempotency_key', key).maybeSingle();
   if (dbError) {
     await reportError('api/brews idempotency lookup', dbError);
     return error(500, 'Failed to save brew.');
@@ -76,8 +86,17 @@ export const POST = withErrorReports(async (request: Request) => {
   }
   if (!parsed.ok || errors.length) return error(400, 'Invalid brew.', errors);
 
+  const found = await findCoffee(ctx, parsed.value.coffee);
+  if (found instanceof Response) return found;
+
   if (isDryRun(request)) {
-    return json({ dry_run: true, brew: parsed.value, photo: photoInput ? { bytes: photoInput.bytes.length } : null });
+    // The coffee it would use, or the details of the one it would create (id null)
+    const coffee = found.coffee ?? { id: null, ...found.details };
+    return json({
+      dry_run: true,
+      brew: { ...parsed.value.brew, coffee },
+      photo: photoInput ? { bytes: photoInput.bytes.length } : null,
+    });
   }
 
   if (idempotencyKey) {
@@ -86,25 +105,33 @@ export const POST = withErrorReports(async (request: Request) => {
     if (saved) return json({ brew: saved, replayed: true });
   }
 
+  const coffee = await saveCoffee(ctx, found);
+  if (coffee instanceof Response) return coffee;
+
   let photoPath: string | null = null;
   if (photoInput) {
     photoPath = await uploadPhoto(ctx, photoInput);
-    if (!photoPath) return error(500, 'Failed to upload photo.');
+    if (!photoPath) {
+      await discardCoffee(ctx, coffee);
+      return error(500, 'Failed to upload photo.');
+    }
   }
 
   const { data, error: dbError } = await ctx.db
     .from('brews')
     .insert({
-      ...parsed.value,
+      ...parsed.value.brew,
+      coffee_id: coffee.id,
       user_id: ctx.userId,
       photo_path: photoPath,
       ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
     })
-    .select()
+    .select(WITH_COFFEE)
     .single();
 
   if (dbError) {
     if (photoPath) await removePhoto(ctx, photoPath);
+    await discardCoffee(ctx, coffee);
     // A concurrent save with the same key won the unique index: return what it saved
     if (idempotencyKey && dbError.code === '23505') {
       const saved = await findByIdempotencyKey(ctx, idempotencyKey);

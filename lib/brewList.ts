@@ -20,12 +20,12 @@ export function filterBrews(brews: Brew[], filters: BrewFilters): Brew[] {
   const q = filters.query.trim().toLowerCase();
   const result = brews.filter((b) => {
     if (q) {
-      const searchable = [b.coffee_name, b.roaster, b.origin, b.flavor_notes]
+      const searchable = [b.coffee.name, b.coffee.roaster, b.coffee.origin, b.flavor_notes]
         .filter(Boolean).join(' ').toLowerCase();
       if (!searchable.includes(q)) return false;
     }
     if (filters.method && b.brew_method !== filters.method) return false;
-    if (filters.roast && b.roast_level !== filters.roast) return false;
+    if (filters.roast && b.coffee.roast_level !== filters.roast) return false;
     if (filters.minRating && (b.rating ?? 0) < filters.minRating) return false;
     return true;
   });
@@ -35,7 +35,7 @@ export function filterBrews(brews: Brew[], filters: BrewFilters): Brew[] {
     switch (filters.sortBy) {
       case 'oldest': return time(a) - time(b);
       case 'top_rated': return (b.rating ?? 0) - (a.rating ?? 0);
-      case 'name': return a.coffee_name.localeCompare(b.coffee_name);
+      case 'name': return a.coffee.name.localeCompare(b.coffee.name);
       default: return time(b) - time(a);
     }
   });

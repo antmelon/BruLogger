@@ -16,7 +16,7 @@ Entered in App Store Connect, not kept here, because Apple requires a phone numb
 - **Sign-in required:** no demo account. Reviewers sign in with Apple, which creates a new, empty account.
 - **Notes:**
 
-  > BruLogger is a personal coffee journal. No demo account is needed: sign in with Apple (or Google) on the first screen, which creates a new, empty account. Tap "+ Log Brew" to add a brew; the My Brews, Analytics and Profile tabs fill in as brews are added. Brews and photos are private to each account and never shown to other users. To delete the account and all its data: Profile > Delete Account. For an account that signed in with Apple, the app asks to confirm with Apple, then revokes its Sign in with Apple token before deleting anything.
+  > BruLogger is a personal coffee journal. No demo account is needed: sign in with Apple (or Google) on the first screen, which creates a new, empty account. Tap "+ Log Brew" to add a brew (its first section adds the coffee); the My Brews, Coffees, Analytics and Profile tabs fill in as brews are added. Brews and photos are private to each account and never shown to other users. To delete the account and all its data: Profile > Delete Account. For an account that signed in with Apple, the app asks to confirm with Apple, then revokes its Sign in with Apple token before deleting anything.
 
 ## App Privacy (the privacy "nutrition label")
 

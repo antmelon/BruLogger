@@ -19,9 +19,10 @@ Live at **[brulogger.vercel.app](https://brulogger.vercel.app)**. The same codeb
 
 ## Features
 
-- **Log a brew**: the coffee (name, roaster, origin, roast level, varietal, processing), the recipe (method, grind, water temperature, dose, yield, brew time), tasting notes, a 1–5 star rating in half stars, and a photo.
+- **Log a brew**: which coffee, the recipe (method, grind, water temperature, dose, yield, brew time), tasting notes, a 1–5 star rating in half stars, and a photo. A new brew starts with the coffee you used last.
+- **Coffees you own**: each bag once (name, roaster, origin, roast level, varietal, processing, the roaster's tasting notes, roast date, bag size), then pick it for every brew. The Coffees tab shows days since roast, brews and average rating per coffee, and how much is left from the doses you logged, with a "running low" flag. Mark a bag finished when it's gone.
 - **Flavor profile**: score aromatics, acidity, sweetness, aftertaste and body from 1 to 5, shown as a radar chart. It's optional, so averages only include brews you actually scored.
-- **Browse your history**: search by coffee, roaster, origin or flavor notes; filter by method, roast or minimum rating; sort by date, rating or name.
+- **Browse your history**: search by coffee name, roaster, origin or flavor notes; filter by method, roast or minimum rating; sort by date, rating or name.
 - **Analytics**: total brews, average rating, favorite method, rating over time, brews by method and roast level, and your average flavor profile.
 - **Log from Telegram**: send the bot something like *"V60, Guji natural, 15g/250g, 3:10, blueberry, 4.5 stars"*, a photo of the bag, a photo of the cup, or any mix. It drafts the brew, asks you to confirm, and saves it. It can also fix or delete a logged brew and answer questions about past ones.
 - **Private**: you sign in with Apple or Google, and each account sees only its own brews.
@@ -90,6 +91,7 @@ flowchart TD
 
   subgraph tabs [Tabs]
     list["My Brews<br/>search · filter · sort"]
+    coffees["Coffees<br/>in use · finished"]
     analytics["Analytics"]
     profile["Profile<br/>stats · sign out · delete account"]
   end
@@ -97,17 +99,22 @@ flowchart TD
   list --> detail["Brew detail<br/>/brew/:id"]
   list --> new["Log a brew<br/>/brew/new"]
   detail --> edit["Edit brew<br/>/brew/edit/:id"]
+  detail --> coffee
+  coffees --> coffee["Coffee<br/>/coffee/:id"]
+  coffees --> newCoffee["Add a coffee<br/>/coffee/new"]
+  coffee --> editCoffee["Edit coffee<br/>/coffee/edit/:id"]
+  coffee -- "Log a Brew" --> new
 ```
 
-Logging and editing a brew use the same form (`components/BrewForm.tsx`).
+Logging and editing a brew use the same form (`components/BrewForm.tsx`). Its first section picks the coffee from the ones in use, or adds a new one with the same fields as the coffee form (`components/CoffeeFields.tsx`). The roast date is typed ("Oct 5", "10/5", "yesterday") and read back under the field, since a date picker would need a new native build.
 
 The [privacy policy](https://brulogger.com/privacy), [terms](https://brulogger.com/terms) and [support page](https://brulogger.com/support) (`app/(public)/`) are open whether you're signed in or not. They're linked from the landing page, the sign-in screen and Profile.
 
 ### Data loading
 
-Screens never query Supabase themselves. They use the hooks in `lib/brewQueries.ts`, which wrap the data-access functions in `lib/brews.ts`:
+Screens never query Supabase themselves. They use the hooks in `lib/brewQueries.ts`, which wrap the data-access functions in `lib/brews.ts` and `lib/coffees.ts`:
 
-- **One shared list.** All three tabs read the same cached `brews` query, so switching tabs doesn't refetch anything. Opening a brew shows the cached row right away.
+- **One shared list.** Every tab reads the same cached `brews` query, so switching tabs doesn't refetch anything. Opening a brew shows the cached row right away. Each brew comes with its coffee. Coffees are one more cached list (`coffees`), and the per-coffee numbers are worked out from the brews list (`lib/coffeeStats.ts`). Editing a coffee refreshes both.
 - **Staying fresh.** Data older than 30 seconds is refetched when a screen or the app regains focus, which is how brews logged from Telegram appear.
 - **Writes.** Creating, editing and deleting update the cache directly. When a brew's photo is replaced or the brew is deleted, the old photo file is deleted, but only after the database write succeeds.
 - **Photos.** A picked photo is shrunk before upload (`lib/photos.ts`): longest edge 1600 px, re-encoded as JPEG at 0.8 quality. HEIC and PNG photos get converted along the way.
@@ -188,11 +195,13 @@ In October 2026, an axe-core audit of every screen of the web build found no WCA
 
 ## Data model
 
-Each Brew is one row in `public.brews`, owned by a Supabase Auth user. A photo is a file in the private `brew-photos` storage bucket, stored under the owner's user ID; the brew keeps its storage path. For what each domain term means, see the [glossary](CONTEXT.md).
+Each Brew is one row in `public.brews`, and each Coffee (a bag) one row in `public.coffees`, both owned by a Supabase Auth user. Every brew links to a coffee. A photo is a file in the private `brew-photos` storage bucket, stored under the owner's user ID; the brew keeps its storage path. For what each domain term means, see the [glossary](CONTEXT.md).
 
 ```mermaid
 erDiagram
+  AUTH_USERS ||--o{ COFFEES : owns
   AUTH_USERS ||--o{ BREWS : owns
+  COFFEES ||--o{ BREWS : "coffee_id"
   BREWS ||--o| PHOTO : "photo_path"
 
   AUTH_USERS {
@@ -200,16 +209,27 @@ erDiagram
     text email
   }
 
-  BREWS {
+  COFFEES {
     uuid id PK
     uuid user_id FK
     timestamptz created_at
-    text coffee_name "required"
+    text name "required"
     text roaster
     text origin
     text roast_level "Light to Dark"
     text varietal
     text processing_method
+    text roaster_notes "printed on the bag"
+    date roast_date
+    numeric bag_size_g "grams"
+    timestamptz finished_at "null while in use"
+  }
+
+  BREWS {
+    uuid id PK
+    uuid user_id FK
+    uuid coffee_id FK
+    timestamptz created_at
     text brew_method "required"
     text grind_size
     numeric water_temp_c "degrees C"
@@ -236,16 +256,20 @@ erDiagram
 | `rating` | 1–5 in half steps. |
 | `flavor_profile` | `{ aromatics, acidity, sweetness, aftertaste, body }`, each 1–5 in half steps. All five axes or none. |
 | `idempotency_key` | Set by the API when a save is retried; unique per user. The app leaves it empty. |
+| `coffee_id` | The brew's coffee. The foreign key is `(coffee_id, user_id)`, so a brew can only use its owner's coffee. A coffee that still has brews can't be deleted; it's marked finished instead. |
+| `bag_size_g` | Greater than 0. What's left is the bag size minus the doses logged for it. |
 
 Every optional column is `null` when unset. To clear a field on update, send `null`; a missing key leaves the old value in place.
 
-The schema lives in [`supabase/migrations/`](supabase/migrations), and `types/database.ts` is generated from the live database. `types/index.ts` builds the app's `Brew` type on top of it, narrowing the columns Postgres only knows as text or JSON (`brew_method`, `roast_level`, `flavor_profile`).
+**Coffees, step 2 (pending).** App 1.0.0 reads and writes the coffee details on the brew itself, so until a newer build is the only one in use, `brews` still has `coffee_name`, `roaster`, `origin`, `roast_level`, `varietal` and `processing_method`, as copies of its coffee that database triggers keep current (`supabase/migrations/20261012195840_coffees.sql`). A brew 1.0.0 saves without a coffee is linked to the coffee with that name and roaster, or a new one. The app and the API never read the copies. Step 2, once the 1.0.0 build is gone, makes `coffee_id` required and drops the copies and the triggers.
+
+The schema lives in [`supabase/migrations/`](supabase/migrations), and `types/database.ts` is generated from the live database. `types/index.ts` builds the app's `Brew` and `Coffee` types on top of it, narrowing the columns Postgres only knows as text or JSON (`brew_method`, `roast_level`, `flavor_profile`) and leaving out the copied coffee columns.
 
 ## Security
 
-- **Row-level security** on `brews`: a signed-in user can read, create, update and delete only rows whose `user_id` is their own, and can't move a brew to another user.
+- **Row-level security** on `brews` and `coffees`: a signed-in user can read, create, update and delete only rows whose `user_id` is their own, and can't move one to another user. A brew's foreign key to its coffee includes `user_id`, so it can't point at someone else's coffee either.
 - **Private photos**: the `brew-photos` bucket isn't public. Storage policies let users upload, read and delete only files in their own folder, and the app displays a photo through a signed link that expires after an hour. The bucket only accepts images up to 5 MB.
-- **Account deletion**: Profile → Delete Account removes everything the user has stored. The app first deletes every file in their photo folder through the Storage API (SQL can't delete storage files), then calls the `delete_account()` database function, which deletes the user's auth account; their brews go with it (`on delete cascade`). Only signed-in users can call the function, and it only deletes the caller. If the photos can't be deleted, the account is left alone so the user can try again. On iPhone, an Apple account's Sign in with Apple access is revoked first (see Sign-in).
+- **Account deletion**: Profile → Delete Account removes everything the user has stored. The app first deletes every file in their photo folder through the Storage API (SQL can't delete storage files), then calls the `delete_account()` database function, which deletes the user's auth account; their brews and coffees go with it (`on delete cascade`). Only signed-in users can call the function, and it only deletes the caller. If the photos can't be deleted, the account is left alone so the user can try again. On iPhone, an Apple account's Sign in with Apple access is revoked first (see Sign-in).
 - **Apple's signing key** stays on the server (Vercel Production env), never in the app. `/api/apple/revoke` only answers callers with a valid Supabase session.
 - **The anon key** in the app is public by design. It grants nothing beyond what row-level security allows.
 - **The bot API** uses a single bearer token that maps to one configured user, and writes with Supabase's service role key, which bypasses row-level security. So the API handlers themselves limit every query to that user. The token is compared in constant time.
@@ -267,7 +291,7 @@ sequenceDiagram
   bot->>you: Log this? Guji · Pour Over · 15g → 250g · ★4.5 📷
   you->>bot: Yes
   bot->>api: POST with Idempotency-Key: k1
-  api->>sb: Upload photo, insert brew
+  api->>sb: Find or create the coffee, upload photo, insert brew
   api-->>bot: 201 { brew }
   bot->>you: Logged ✓
   Note over bot,api: Retrying with the same key returns the saved brew<br/>(200, "replayed": true) instead of saving it twice
@@ -281,13 +305,13 @@ Send `Authorization: Bearer <BRULOGGER_API_TOKEN>` with every request. A missing
 
 | Method and path | What it does | Success |
 | --- | --- | --- |
-| `GET /api/brews` | Brews, newest first. Query: `limit` (default 10, max 50), `since` (ISO 8601), `q` (case-insensitive match on coffee name, roaster or origin). | `200 { "brews": [...] }` |
+| `GET /api/brews` | Brews, newest first. Query: `limit` (default 10, max 50), `since` (ISO 8601), `q` (case-insensitive match on the coffee's name, roaster or origin). | `200 { "brews": [...] }` |
 | `POST /api/brews` | Creates a brew. Add `?dry_run=1` to validate and normalize without saving. | `201 { "brew": {...} }` |
 | `GET /api/brews/:id` | One brew. | `200 { "brew": {...} }` |
 | `PATCH /api/brews/:id` | Changes only the fields sent; `null` clears a field. | `200 { "brew": {...} }` |
 | `DELETE /api/brews/:id` | Deletes the brew, then its photo. | `200 { "deleted": {...} }` |
 
-An `:id` that doesn't exist, belongs to someone else or isn't a valid UUID gets `404`.
+An `:id` that doesn't exist, belongs to someone else or isn't a valid UUID gets `404`. Every brew comes back with its coffee as `coffee`.
 
 ### Request body
 
@@ -298,7 +322,9 @@ Brew fields use the column names from the [data model](#data-model). Input is fo
 - Unknown fields are rejected, so a typo like `"dose"` instead of `"dose_g"` fails instead of being dropped.
 - `created_at` is optional (it defaults to now) and can't be in the future.
 - A photo is sent as `"photo": { "data": "<base64>", "mime_type": "image/jpeg" }`. JPEG, PNG, WebP and HEIC are accepted, up to 3 MB decoded, which keeps the request under Vercel's 4.5 MB limit. In a `PATCH`, `"photo": null` removes the photo.
-- A `PATCH` can change `coffee_name`, `brew_method` and `created_at`, but can't clear them.
+- The coffee is `coffee_id`, or its details: `coffee_name` (required then), `roaster`, `origin`, `roast_level`, `varietal`, `processing_method`, `roaster_notes`, `roast_date` (`YYYY-MM-DD`) and `bag_size_g`. Not both. Details are matched to one of the user's coffees by name and roaster, ignoring case, preferring a bag still in use; a different roast date counts as a different bag. A match gets any details it was missing filled in (never changed). With no match, a new coffee is created. A dry run shows the coffee it would use, or the new one with `"id": null`.
+- In a `PATCH`, `coffee_id` or a new coffee name or roaster moves the brew to that coffee (found or created). Other coffee details edit the brew's coffee, so they change for every brew of it.
+- A `PATCH` can change `coffee_id`, `coffee_name`, `brew_method` and `created_at`, but can't clear them.
 
 ### Safe retries
 
@@ -453,7 +479,7 @@ The listing and the rest of the submission are in [`docs/app-store.md`](docs/app
 
 Supabase's free plan has no backups, and its paid backups leave out Storage files anyway. So a home server backs up production every night at 23:15:
 
-- **Database:** a `pg_dump` (custom format), signed in as `brulogger_backup`, a read-only role. It covers the `public`, `auth` and `storage` schemas: brews, accounts and linked Apple and Google identities, and the bucket and photo records. Sign-in sessions, refresh tokens, MFA claims and the auth audit log are left out, so a leaked dump can't be used to sign in. After a restore, people sign in again. Before a dump is kept, it must list the `brews` data.
+- **Database:** a `pg_dump` (custom format), signed in as `brulogger_backup`, a read-only role. It covers the `public`, `auth` and `storage` schemas: brews and coffees, accounts and linked Apple and Google identities, and the bucket and photo records. Sign-in sessions, refresh tokens, MFA claims and the auth audit log are left out, so a leaked dump can't be used to sign in. After a restore, people sign in again. Before a dump is kept, it must list the `brews` data.
 - **Photos:** the `brew-photos` bucket is mirrored with rclone over Supabase Storage's S3 endpoint.
 - **Retention:** 14 days of dumps on the server. The server's own encrypted restic backup copies them off-site every night and keeps months of history.
 - **Failures** send a Telegram message.
@@ -485,12 +511,14 @@ app/                    Screens (Expo Router: one file per route)
   index.tsx             Landing page (web), welcome screen (app)
   (auth)/login.tsx      Apple and Google sign-in
   auth/callback.tsx     Finishes web sign-in
-  (tabs)/               My Brews, Analytics, Profile
+  (tabs)/               My Brews, Coffees, Analytics, Profile
   (public)/             Privacy policy, terms, support (no sign-in needed)
   brew/                 Detail, new, edit
-components/             BrewForm, RadarChart, StarRating, SliderInput, SignInButtons, WelcomeScreen, LegalPage, icons
+  coffee/               Detail, new, edit
+components/             BrewForm, CoffeeForm, CoffeeFields, FormFields, RadarChart, StarRating, SliderInput, SignInButtons, WelcomeScreen, LegalPage, icons
 lib/
-  brews.ts              Data access: the only place that queries Supabase for brews
+  brews.ts              Data access for brews (with their coffee) and photos
+  coffees.ts            Data access for coffees; with brews.ts, the only place that queries Supabase for them
   account.ts            Account deletion
   appleSignIn.ts        Sign in with Apple on iPhone, and revoking it
   crashReports.ts       Scrubs secrets out of crash reports
@@ -501,8 +529,10 @@ lib/
   brewQueries.ts        TanStack Query hooks used by screens
   brewList.ts           Search, filter, sort for My Brews
   analytics.ts          Stats and averages
-  form.ts               Form values → save payload, with validation
+  coffeeStats.ts        Days since roast, what's left, stats per coffee, coffee order in lists
+  form.ts               Form values → save payload, with validation; reads typed roast dates
   brewInput.ts          API input validation
+  coffeeMatch.ts        Which of the user's coffees the API's coffee details mean
   photos.ts             Resize before upload
   storage.ts            Photo bucket name
   supabase.ts           Supabase client
@@ -510,11 +540,12 @@ lib/
 api/brews/              Vercel functions: index.ts (list, create), [id].ts (get, update, delete)
 api/apple/revoke.ts     Vercel function: revokes Sign in with Apple when an account is deleted
 server/api.ts           Shared API helpers: auth, responses, photos
+server/coffees.ts       The API's coffee lookups: find, create, fill in, move a brew
 server/apple.ts         Apple client secrets and token revocation
 eas.json                EAS build and submit profiles (iOS releases)
 store.config.json       App Store listing (EAS Metadata); docs/app-store.md covers the rest
 public/                 Copied into the web build: page template, web app manifest and icons, service worker, offline page
-types/                  Generated database types and the app's Brew types
+types/                  Generated database types and the app's Brew and Coffee types
 supabase/migrations/    Database schema
 integrations/hermes/    The Telegram agent's skill
 __tests__/              Jest tests

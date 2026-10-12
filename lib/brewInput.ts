@@ -1,26 +1,41 @@
-import { BREW_METHODS, ROAST_LEVELS, BrewInsert, FlavorProfile } from '../types';
-import { parseNumberField } from './form';
+import { BREW_METHODS, ROAST_LEVELS, CoffeeInsert, FlavorProfile } from '../types';
+import { BrewFields, parseNumberField } from './form';
 
-// Validation for brews created through the HTTP API (api/brews.ts). Lenient where an
-// agent is likely to vary (case of enum values, numbers sent as strings), strict about
-// unknown keys so a typo like "dose" instead of "dose_g" fails loudly instead of being dropped.
+// Validation for brews created and changed through the HTTP API (api/brews/), used by the Hermes
+// Telegram bot. Lenient where an agent is likely to vary (case of enum values, numbers sent as
+// strings), strict about unknown keys so a typo like "dose" instead of "dose_g" fails loudly
+// instead of being dropped.
+//
+// A brew's coffee comes as coffee_id, or as its details (coffee_name, roaster, ...), which
+// server/coffees.ts matches to one of the user's coffees or saves as a new one.
 
-export type BrewApiInput = BrewInsert & { created_at?: string };
+/** Coffee details by their coffee column names (the API's coffee_name is `name`). */
+export type CoffeeDetails = Partial<Omit<CoffeeInsert, 'finished_at'>>;
 
-type Result = { ok: true; value: BrewApiInput } | { ok: false; errors: string[] };
+export type CoffeeRef = { id: string } | { details: CoffeeDetails };
 
-const TEXT_FIELDS = [
-  'roaster', 'origin', 'varietal', 'processing_method', 'grind_size', 'flavor_notes', 'general_notes',
-] as const;
-const NUMBER_FIELDS = ['water_temp_c', 'dose_g', 'yield_g'] as const;
+export type BrewApiFields = BrewFields & { created_at?: string };
+
+export type BrewApiInput = { brew: BrewApiFields; coffee: CoffeeRef };
+
+/** A partial update: only what was sent. `coffee` is there when any coffee field was sent. */
+export type BrewPatch = { brew: Partial<BrewApiFields>; coffee?: CoffeeRef };
+
+type Result<T> = { ok: true; value: T } | { ok: false; errors: string[] };
+
+const BREW_TEXT = ['grind_size', 'flavor_notes', 'general_notes'] as const;
+const BREW_NUMBERS = ['water_temp_c', 'dose_g', 'yield_g'] as const;
+const COFFEE_TEXT = ['roaster', 'origin', 'varietal', 'processing_method', 'roaster_notes'] as const;
+const COFFEE_FIELDS = ['coffee_name', ...COFFEE_TEXT, 'roast_level', 'roast_date', 'bag_size_g'] as const;
 const PROFILE_KEYS: (keyof FlavorProfile)[] = ['aromatics', 'acidity', 'sweetness', 'aftertaste', 'body'];
 
-export const ALLOWED_FIELDS = [
-  'coffee_name', 'brew_method', 'roast_level', ...TEXT_FIELDS, ...NUMBER_FIELDS,
+export const ALLOWED_FIELDS: string[] = [
+  'coffee_id', ...COFFEE_FIELDS, 'brew_method', ...BREW_TEXT, ...BREW_NUMBERS,
   'brew_time_s', 'rating', 'flavor_profile', 'created_at',
 ];
 
 const MAX_TEXT = 2000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function matchEnum<T extends string>(value: unknown, options: readonly T[]): T | undefined {
   if (typeof value !== 'string') return undefined;
@@ -46,112 +61,170 @@ function toHalfStepScore(value: unknown): number | undefined {
   return rounded >= 1 && rounded <= 5 ? rounded : undefined;
 }
 
-export function parseBrewInput(body: unknown): Result {
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    return { ok: false, errors: ['Body must be a JSON object.'] };
-  }
-  const input = body as Record<string, unknown>;
-  const errors: string[] = [];
+/** 'YYYY-MM-DD' for a real date no later than tomorrow (UTC, so any time zone's today passes). */
+function toRoastDate(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const d = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== value) return undefined;
+  return d.getTime() <= Date.now() + 86_400_000 ? value : undefined;
+}
+
+type Fields = { brew: Record<string, unknown>; coffee: Record<string, unknown>; coffeeId?: unknown };
+
+/**
+ * Validates and normalizes the fields present in `input` (null stays null, meaning cleared).
+ * Missing fields are left out, so a create fills in defaults and a patch sends only what it got.
+ */
+function validate(input: Record<string, unknown>, errors: string[]): Fields {
+  const fields: Fields = { brew: {}, coffee: {} };
+  const has = (key: string) => key in input && input[key] !== undefined;
 
   const unknown = Object.keys(input).filter((k) => !ALLOWED_FIELDS.includes(k));
   if (unknown.length) {
     errors.push(`Unknown field(s): ${unknown.join(', ')}. Allowed: ${ALLOWED_FIELDS.join(', ')}.`);
   }
 
-  const coffeeName = typeof input.coffee_name === 'string' ? input.coffee_name.trim() : '';
-  if (!coffeeName) errors.push('coffee_name is required.');
-
-  const brewMethod = matchEnum(input.brew_method, BREW_METHODS);
-  if (!brewMethod) errors.push(`brew_method must be one of: ${BREW_METHODS.join(', ')}.`);
-
-  let roastLevel: BrewInsert['roast_level'] = null;
-  if (input.roast_level != null && input.roast_level !== '') {
-    roastLevel = matchEnum(input.roast_level, ROAST_LEVELS) ?? null;
-    if (!roastLevel) errors.push(`roast_level must be one of: ${ROAST_LEVELS.join(', ')}.`);
+  if (has('coffee_id')) {
+    const id = input.coffee_id;
+    if (id !== null && (typeof id !== 'string' || !UUID.test(id))) errors.push("coffee_id must be a coffee's id.");
+    fields.coffeeId = id;
   }
 
-  const text: Partial<Record<(typeof TEXT_FIELDS)[number], string | null>> = {};
-  for (const field of [...TEXT_FIELDS, 'coffee_name'] as const) {
+  for (const [field, target, column] of [
+    ['coffee_name', fields.coffee, 'name'],
+    ...COFFEE_TEXT.map((f) => [f, fields.coffee, f] as const),
+    ...BREW_TEXT.map((f) => [f, fields.brew, f] as const),
+  ] as const) {
+    if (!has(field)) continue;
     const v = input[field];
-    if (v != null && typeof v !== 'string') errors.push(`${field} must be a string.`);
+    if (v !== null && typeof v !== 'string') errors.push(`${field} must be a string.`);
     else if (typeof v === 'string' && v.length > MAX_TEXT) errors.push(`${field} is too long.`);
-    if (field !== 'coffee_name') text[field] = typeof v === 'string' ? v.trim() || null : null;
+    else target[column] = typeof v === 'string' ? v.trim() || null : null;
   }
 
-  const numbers: Partial<Record<(typeof NUMBER_FIELDS)[number] | 'brew_time_s', number | null>> = {};
-  for (const field of [...NUMBER_FIELDS, 'brew_time_s'] as const) {
+  if (has('roast_level')) {
+    const v = input.roast_level;
+    const level = v === null || v === '' ? null : matchEnum(v, ROAST_LEVELS);
+    if (level === undefined) errors.push(`roast_level must be one of: ${ROAST_LEVELS.join(', ')}.`);
+    else fields.coffee.roast_level = level;
+  }
+
+  if (has('roast_date')) {
+    const v = input.roast_date;
+    const date = v === null ? null : toRoastDate(v);
+    if (date === undefined) errors.push('roast_date must be a date (YYYY-MM-DD), not in the future.');
+    else fields.coffee.roast_date = date;
+  }
+
+  if (has('bag_size_g')) {
+    const n = toNumber(input.bag_size_g);
+    if (n === undefined || n === 0) errors.push('bag_size_g must be a positive number (grams).');
+    else fields.coffee.bag_size_g = n;
+  }
+
+  if (has('brew_method')) {
+    const method = matchEnum(input.brew_method, BREW_METHODS);
+    if (input.brew_method !== null && !method) errors.push(`brew_method must be one of: ${BREW_METHODS.join(', ')}.`);
+    else fields.brew.brew_method = method ?? null;
+  }
+
+  for (const field of [...BREW_NUMBERS, 'brew_time_s'] as const) {
+    if (!has(field)) continue;
     const n = toNumber(input[field], field === 'brew_time_s');
     if (n === undefined) errors.push(`${field} must be a non-negative number.`);
-    else numbers[field] = n;
+    else fields.brew[field] = n;
   }
 
-  let rating: number | null = null;
-  if (input.rating != null) {
-    rating = toHalfStepScore(input.rating) ?? null;
-    if (rating === null) errors.push('rating must be between 1 and 5 (half steps allowed).');
+  if (has('rating')) {
+    const rating = input.rating === null ? null : toHalfStepScore(input.rating);
+    if (rating === undefined) errors.push('rating must be between 1 and 5 (half steps allowed).');
+    else fields.brew.rating = rating;
   }
 
-  let flavorProfile: FlavorProfile | null = null;
-  if (input.flavor_profile != null) {
-    const fp = input.flavor_profile as Record<string, unknown>;
-    if (typeof fp !== 'object' || Array.isArray(fp)) {
+  if (has('flavor_profile')) {
+    const fp = input.flavor_profile;
+    if (fp === null) {
+      fields.brew.flavor_profile = null;
+    } else if (typeof fp !== 'object' || Array.isArray(fp)) {
       errors.push('flavor_profile must be an object.');
     } else {
       const extra = Object.keys(fp).filter((k) => !PROFILE_KEYS.includes(k as keyof FlavorProfile));
       if (extra.length) errors.push(`Unknown flavor_profile key(s): ${extra.join(', ')}.`);
-      const scores = PROFILE_KEYS.map((k) => [k, toHalfStepScore(fp[k])] as const);
+      const scores = PROFILE_KEYS.map((k) => [k, toHalfStepScore((fp as Record<string, unknown>)[k])] as const);
       const bad = scores.filter(([, v]) => v === undefined).map(([k]) => k);
       if (bad.length) {
         errors.push(`flavor_profile needs all of ${PROFILE_KEYS.join(', ')} scored 1–5; invalid: ${bad.join(', ')}.`);
       } else {
-        flavorProfile = Object.fromEntries(scores) as unknown as FlavorProfile;
+        fields.brew.flavor_profile = Object.fromEntries(scores);
       }
     }
   }
 
-  let createdAt: string | undefined;
-  if (input.created_at != null) {
-    const d = typeof input.created_at === 'string' ? new Date(input.created_at) : null;
-    if (!d || Number.isNaN(d.getTime())) errors.push('created_at must be an ISO 8601 date-time.');
+  if (has('created_at')) {
+    const v = input.created_at;
+    const d = typeof v === 'string' ? new Date(v) : null;
+    if (v === null) fields.brew.created_at = null;
+    else if (!d || Number.isNaN(d.getTime())) errors.push('created_at must be an ISO 8601 date-time.');
     else if (d.getTime() > Date.now() + 5 * 60_000) errors.push('created_at cannot be in the future.');
-    else createdAt = d.toISOString();
+    else fields.brew.created_at = d.toISOString();
   }
 
-  if (errors.length) return { ok: false, errors };
-
-  return {
-    ok: true,
-    value: {
-      coffee_name: coffeeName,
-      brew_method: brewMethod!,
-      roast_level: roastLevel,
-      ...text,
-      ...numbers,
-      rating,
-      flavor_profile: flavorProfile,
-      ...(createdAt ? { created_at: createdAt } : {}),
-    },
-  };
+  if (fields.coffeeId !== undefined && Object.keys(fields.coffee).length) {
+    errors.push('Send coffee_id or the coffee details (coffee_name, roaster, ...), not both.');
+  }
+  return fields;
 }
 
-export type BrewPatch = Partial<BrewApiInput>;
+function asObject(body: unknown): Record<string, unknown> | null {
+  return typeof body === 'object' && body !== null && !Array.isArray(body) ? body as Record<string, unknown> : null;
+}
 
-/**
- * Validation for partial updates (PATCH): only the fields sent change, and null clears one.
- * Validates with the same rules as a create by filling in placeholder required fields, then keeps
- * only the keys the caller sent.
- */
-export function parseBrewPatch(body: unknown): { ok: true; value: BrewPatch } | { ok: false; errors: string[] } {
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    return { ok: false, errors: ['Body must be a JSON object.'] };
+/** Leaves out null values: on a create, a detail sent as null is the same as one not sent. */
+const given = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null));
+
+export function parseBrewInput(body: unknown): Result<BrewApiInput> {
+  const input = asObject(body);
+  if (!input) return { ok: false, errors: ['Body must be a JSON object.'] };
+  const errors: string[] = [];
+  const fields = validate(input, errors);
+
+  if (!fields.coffeeId && !fields.coffee.name) errors.push('coffee_id or coffee_name is required.');
+  if (!fields.brew.brew_method && !errors.some((e) => e.startsWith('brew_method'))) {
+    errors.push(`brew_method must be one of: ${BREW_METHODS.join(', ')}.`);
   }
-  const input = body as Record<string, unknown>;
-  const parsed = parseBrewInput({ coffee_name: 'placeholder', brew_method: 'Other', ...input });
-  const errors = parsed.ok ? [] : parsed.errors;
-  if ('created_at' in input && input.created_at == null) errors.push("created_at can't be cleared.");
-  if (!parsed.ok || errors.length) return { ok: false, errors };
+  if (errors.length) return { ok: false, errors };
 
-  const value: Record<string, unknown> = {};
-  for (const key of Object.keys(input)) value[key] = parsed.value[key as keyof BrewApiInput];
-  return { ok: true, value: value as BrewPatch };
+  const brew = {
+    grind_size: null, flavor_notes: null, general_notes: null,
+    water_temp_c: null, dose_g: null, yield_g: null, brew_time_s: null,
+    rating: null, flavor_profile: null,
+    ...given(fields.brew),
+  } as BrewApiFields;
+  const coffee: CoffeeRef = fields.coffeeId
+    ? { id: fields.coffeeId as string }
+    : { details: given(fields.coffee) as CoffeeDetails };
+  return { ok: true, value: { brew, coffee } };
+}
+
+/** Validation for partial updates (PATCH): only the fields sent change, and null clears one. */
+export function parseBrewPatch(body: unknown): Result<BrewPatch> {
+  const input = asObject(body);
+  if (!input) return { ok: false, errors: ['Body must be a JSON object.'] };
+  const errors: string[] = [];
+  const fields = validate(input, errors);
+
+  for (const [present, field] of [
+    [input.coffee_id === null, 'coffee_id'],
+    [input.coffee_name === null || ('name' in fields.coffee && fields.coffee.name === null), 'coffee_name'],
+    [input.brew_method === null, 'brew_method'],
+    [input.created_at === null, 'created_at'],
+  ] as const) {
+    if (present) errors.push(`${field} can't be cleared.`);
+  }
+  if (errors.length) return { ok: false, errors };
+
+  const value: BrewPatch = { brew: fields.brew as Partial<BrewApiFields> };
+  if (fields.coffeeId) value.coffee = { id: fields.coffeeId as string };
+  else if (Object.keys(fields.coffee).length) value.coffee = { details: fields.coffee as CoffeeDetails };
+  return { ok: true, value };
 }

@@ -3,25 +3,31 @@ import { supabase } from './supabase';
 import { Brew, BrewInsert } from '../types';
 import { PHOTO_BUCKET } from './storage';
 
+// Every brew is read with its coffee. The generated types still allow a brew without one, but the
+// database links every brew to a coffee (step 1 of the coffees migration), hence the casts; step 2
+// makes coffee_id required. The coffee details copied onto brews for app 1.0.0 come back too, and
+// the Brew type leaves them out so nothing reads them.
+const WITH_COFFEE = '*, coffee:coffees(*)';
+
 export async function getBrews(): Promise<Brew[]> {
   const { data, error } = await supabase
     .from('brews')
-    .select('*')
+    .select(WITH_COFFEE)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Brew[];
 }
 
 export async function getBrew(id: string): Promise<Brew> {
   const { data, error } = await supabase
     .from('brews')
-    .select('*')
+    .select(WITH_COFFEE)
     .eq('id', id)
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Brew;
 }
 
 export async function createBrew(brew: BrewInsert): Promise<Brew> {
@@ -31,11 +37,11 @@ export async function createBrew(brew: BrewInsert): Promise<Brew> {
   const { data, error } = await supabase
     .from('brews')
     .insert({ ...brew, user_id: user.id })
-    .select()
+    .select(WITH_COFFEE)
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Brew;
 }
 
 export async function updateBrew(id: string, brew: Partial<BrewInsert>): Promise<Brew> {
@@ -43,11 +49,11 @@ export async function updateBrew(id: string, brew: Partial<BrewInsert>): Promise
     .from('brews')
     .update(brew)
     .eq('id', id)
-    .select()
+    .select(WITH_COFFEE)
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Brew;
 }
 
 export async function deleteBrew(id: string): Promise<void> {

@@ -1,14 +1,18 @@
-import { parseBrewPatch } from '../../lib/brewInput';
+import { BrewPatch, parseBrewPatch } from '../../lib/brewInput';
 import {
   authorize, Context, error, json, parsePhoto, readJsonObject, removePhoto, uploadPhoto,
   reportError, withErrorReports,
 } from '../../server/api';
+import { patchCoffee, WITH_COFFEE } from '../../server/coffees';
+import type { Coffee } from '../../types';
 
 // One brew by id, for the Hermes Telegram bot. See ./index.ts for listing and creating.
 //
 //   GET    /api/brews/:id
 //   PATCH  /api/brews/:id   only the fields sent change; null clears one. photo: {data, mime_type}
-//                           replaces the photo, photo: null removes it
+//                           replaces the photo, photo: null removes it. coffee_id, or a new
+//                           coffee name or roaster, moves the brew to that coffee; other coffee
+//                           details edit its coffee (server/coffees.ts)
 //   DELETE /api/brews/:id   deletes the brew and its photo; returns the deleted brew
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -21,7 +25,7 @@ function brewId(request: Request): string | null {
 /** The user's brew, null if there's no such brew, or an error Response. */
 async function findBrew(ctx: Context, id: string) {
   const { data, error: dbError } = await ctx.db
-    .from('brews').select('*').eq('id', id).eq('user_id', ctx.userId).maybeSingle();
+    .from('brews').select(WITH_COFFEE).eq('id', id).eq('user_id', ctx.userId).maybeSingle();
   if (dbError) {
     await reportError('api/brews/:id lookup', dbError);
     return error(500, 'Failed to load brew.');
@@ -55,13 +59,20 @@ export const PATCH = withErrorReports(async (request: Request) => {
   const errors = parsed.ok ? [] : [...parsed.errors];
   const newPhoto = photo != null ? parsePhoto(photo, errors) : null;
   if (!parsed.ok || errors.length) return error(400, 'Invalid changes.', errors);
-  const changes = { ...parsed.value };
+  const changes: BrewPatch['brew'] & { coffee_id?: string } = { ...parsed.value.brew };
   if ('photo' in body && photo === null) changes.photo_path = null;
-  if (Object.keys(changes).length === 0 && !newPhoto) return error(400, 'Nothing to update.');
+  if (Object.keys(changes).length === 0 && !newPhoto && !parsed.value.coffee) return error(400, 'Nothing to update.');
 
   const existing = await findBrew(ctx, id);
   if (existing instanceof Response) return existing;
   if (!existing) return notFound();
+
+  if (parsed.value.coffee) {
+    // Every brew has a coffee (the database links them); the generated types don't know that yet
+    const moved = await patchCoffee(ctx, existing.coffee as Coffee, parsed.value.coffee);
+    if (moved instanceof Response) return moved;
+    if (moved.coffeeId) changes.coffee_id = moved.coffeeId;
+  }
 
   if (newPhoto) {
     const uploaded = await uploadPhoto(ctx, newPhoto);
@@ -69,8 +80,14 @@ export const PATCH = withErrorReports(async (request: Request) => {
     changes.photo_path = uploaded;
   }
 
+  // Only the coffee's details changed: the brew itself didn't, so just read it back
+  if (Object.keys(changes).length === 0) {
+    const brew = await findBrew(ctx, id);
+    return brew instanceof Response ? brew : json({ brew });
+  }
+
   const { data, error: dbError } = await ctx.db
-    .from('brews').update(changes).eq('id', id).eq('user_id', ctx.userId).select().single();
+    .from('brews').update(changes).eq('id', id).eq('user_id', ctx.userId).select(WITH_COFFEE).single();
   if (dbError) {
     await reportError('api/brews/:id update', dbError);
     if (newPhoto && changes.photo_path) await removePhoto(ctx, changes.photo_path);

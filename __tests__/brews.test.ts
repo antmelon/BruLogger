@@ -29,7 +29,8 @@ const mockBrew = {
   id: 'brew-1',
   user_id: 'user-1',
   created_at: '2024-01-01T00:00:00Z',
-  coffee_name: 'Ethiopia Yirgacheffe',
+  coffee_id: 'coffee-1',
+  coffee: { id: 'coffee-1', name: 'Ethiopia Yirgacheffe' },
   brew_method: 'Pour Over',
 };
 
@@ -57,6 +58,12 @@ describe('getBrews', () => {
     expect(mockFrom).toHaveBeenCalledWith('brews');
   });
 
+  it('reads each brew with its coffee', async () => {
+    mockOrder.mockResolvedValue({ data: [mockBrew], error: null });
+    await getBrews();
+    expect(mockSelect).toHaveBeenCalledWith('*, coffee:coffees(*)');
+  });
+
   it('returns empty array when data is null', async () => {
     mockOrder.mockResolvedValue({ data: null, error: null });
     const result = await getBrews();
@@ -76,6 +83,7 @@ describe('getBrew', () => {
     const result = await getBrew('brew-1');
     expect(result).toEqual(mockBrew);
     expect(mockEq).toHaveBeenCalledWith('id', 'brew-1');
+    expect(mockSelect).toHaveBeenCalledWith('*, coffee:coffees(*)');
   });
 
   it('throws when brew is not found', async () => {
@@ -88,7 +96,7 @@ describe('getBrew', () => {
 describe('createBrew', () => {
   it('throws when user is not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
-    await expect(createBrew({ coffee_name: 'Test', brew_method: 'Espresso' })).rejects.toThrow('Not authenticated');
+    await expect(createBrew({ coffee_id: 'coffee-1', brew_method: 'Espresso' })).rejects.toThrow('Not authenticated');
   });
 
   it('inserts brew with user_id and returns created brew', async () => {
@@ -99,11 +107,10 @@ describe('createBrew', () => {
     const insertChain = { select: jest.fn().mockReturnValue(insertSelect) };
     mockInsert.mockReturnValue(insertChain);
 
-    const result = await createBrew({ coffee_name: 'Ethiopia Yirgacheffe', brew_method: 'Pour Over' });
+    const result = await createBrew({ coffee_id: 'coffee-1', brew_method: 'Pour Over' });
     expect(result).toEqual(mockBrew);
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: 'user-1', coffee_name: 'Ethiopia Yirgacheffe' }),
-    );
+    expect(mockInsert).toHaveBeenCalledWith({ user_id: 'user-1', coffee_id: 'coffee-1', brew_method: 'Pour Over' });
+    expect(insertChain.select).toHaveBeenCalledWith('*, coffee:coffees(*)');
   });
 
   it('throws when Supabase insert returns an error', async () => {
@@ -112,7 +119,7 @@ describe('createBrew', () => {
     const insertChain = { select: jest.fn().mockReturnValue({ single: jest.fn().mockResolvedValue({ data: null, error: dbError }) }) };
     mockInsert.mockReturnValue(insertChain);
 
-    await expect(createBrew({ coffee_name: 'Test', brew_method: 'Espresso' })).rejects.toEqual(dbError);
+    await expect(createBrew({ coffee_id: 'coffee-1', brew_method: 'Espresso' })).rejects.toEqual(dbError);
   });
 });
 
@@ -134,9 +141,10 @@ describe('deleteBrew', () => {
 describe('updateBrew', () => {
   it('sends null fields through so cleared values are persisted', async () => {
     mockSingle.mockResolvedValue({ data: mockBrew, error: null });
-    await updateBrew('brew-1', { coffee_name: 'Test', brew_method: 'Espresso', roaster: null, dose_g: null });
-    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ roaster: null, dose_g: null }));
+    await updateBrew('brew-1', { coffee_id: 'coffee-2', brew_method: 'Espresso', grind_size: null, dose_g: null });
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ coffee_id: 'coffee-2', grind_size: null, dose_g: null }));
     expect(mockEq).toHaveBeenCalledWith('id', 'brew-1');
+    expect(mockSelect).toHaveBeenCalledWith('*, coffee:coffees(*)');
   });
 });
 

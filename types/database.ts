@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           brew_method: string
           brew_time_s: number | null
+          coffee_id: string | null
           coffee_name: string
           created_at: string
           dose_g: number | null
@@ -41,6 +42,7 @@ export type Database = {
         Insert: {
           brew_method: string
           brew_time_s?: number | null
+          coffee_id?: string | null
           coffee_name: string
           created_at?: string
           dose_g?: number | null
@@ -64,6 +66,7 @@ export type Database = {
         Update: {
           brew_method?: string
           brew_time_s?: number | null
+          coffee_id?: string | null
           coffee_name?: string
           created_at?: string
           dose_g?: number | null
@@ -83,6 +86,62 @@ export type Database = {
           varietal?: string | null
           water_temp_c?: number | null
           yield_g?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brews_coffee_id_fkey"
+            columns: ["coffee_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "coffees"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      coffees: {
+        Row: {
+          bag_size_g: number | null
+          created_at: string
+          finished_at: string | null
+          id: string
+          name: string
+          origin: string | null
+          processing_method: string | null
+          roast_date: string | null
+          roast_level: string | null
+          roaster: string | null
+          roaster_notes: string | null
+          user_id: string
+          varietal: string | null
+        }
+        Insert: {
+          bag_size_g?: number | null
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          name: string
+          origin?: string | null
+          processing_method?: string | null
+          roast_date?: string | null
+          roast_level?: string | null
+          roaster?: string | null
+          roaster_notes?: string | null
+          user_id: string
+          varietal?: string | null
+        }
+        Update: {
+          bag_size_g?: number | null
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          name?: string
+          origin?: string | null
+          processing_method?: string | null
+          roast_date?: string | null
+          roast_level?: string | null
+          roaster?: string | null
+          roaster_notes?: string | null
+          user_id?: string
+          varietal?: string | null
         }
         Relationships: []
       }

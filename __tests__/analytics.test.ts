@@ -1,6 +1,6 @@
 import { avgFlavorProfile, brewStats, countBy } from '../lib/analytics';
 import { Brew, FlavorProfile } from '../types';
-import { BASE_BREW } from './fixtures';
+import { BASE_BREW, BASE_COFFEE } from './fixtures';
 
 describe('countBy', () => {
   it('counts items and sorts by frequency descending', () => {
@@ -88,11 +88,11 @@ describe('brewStats', () => {
 
   it('picks the most-logged method and origin, ignoring brews without an origin', () => {
     const brews: Brew[] = [
-      { ...BASE_BREW, id: '1', brew_method: 'Espresso', origin: 'Kenya' },
-      { ...BASE_BREW, id: '2', brew_method: 'Pour Over', origin: null },
-      { ...BASE_BREW, id: '3', brew_method: 'Pour Over', origin: null },
-      { ...BASE_BREW, id: '4', brew_method: 'Espresso', origin: 'Ethiopia' },
-      { ...BASE_BREW, id: '5', brew_method: 'Pour Over', origin: 'Ethiopia' },
+      { ...BASE_BREW, id: '1', brew_method: 'Espresso', coffee: { ...BASE_COFFEE, origin: 'Kenya' } },
+      { ...BASE_BREW, id: '2', brew_method: 'Pour Over', coffee: { ...BASE_COFFEE, origin: null } },
+      { ...BASE_BREW, id: '3', brew_method: 'Pour Over', coffee: { ...BASE_COFFEE, origin: null } },
+      { ...BASE_BREW, id: '4', brew_method: 'Espresso', coffee: { ...BASE_COFFEE, origin: 'Ethiopia' } },
+      { ...BASE_BREW, id: '5', brew_method: 'Pour Over', coffee: { ...BASE_COFFEE, origin: 'Ethiopia' } },
     ];
     const stats = brewStats(brews);
     expect(stats.topMethod).toBe('Pour Over');

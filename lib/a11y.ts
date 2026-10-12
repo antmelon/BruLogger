@@ -1,6 +1,8 @@
-import { Brew, FlavorProfile } from '../types';
+import { Brew, Coffee, FlavorProfile } from '../types';
+import { CoffeeStats, daysAgo } from './coffeeStats';
 
-// What screen readers say for things that are only drawn: star ratings and the flavor radar.
+// What screen readers say for things that are only drawn (star ratings, the flavor radar) and for
+// cards read as one item.
 
 /** A rating as spoken, e.g. "4.5 out of 5 stars". 0 and null both mean unrated. */
 export function ratingLabel(rating: number | null): string {
@@ -27,13 +29,31 @@ export function flavorProfileLabel(profile: FlavorProfile): string {
 /** A brew card in My Brews, read as one item: what's on the card, the date last. */
 export function brewCardLabel(brew: Brew, date: string): string {
   return [
-    brew.coffee_name,
-    brew.roaster,
+    brew.coffee.name,
+    brew.coffee.roaster,
     brew.brew_method,
-    brew.roast_level && `${brew.roast_level} roast`,
+    brew.coffee.roast_level && `${brew.coffee.roast_level} roast`,
     brew.rating && ratingLabel(brew.rating),
     brew.flavor_notes,
     date,
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** A coffee card in the Coffees tab, read as one item. `daysOld` is days since roast, if known. */
+export function coffeeCardLabel(coffee: Coffee, stats: CoffeeStats, daysOld: number | null): string {
+  return [
+    coffee.name,
+    coffee.roaster,
+    coffee.roast_level && `${coffee.roast_level} roast`,
+    daysOld !== null && `roasted ${daysAgo(daysOld)}`,
+    stats.brewCount ? plural(stats.brewCount, 'brew') : 'no brews yet',
+    stats.avgRating && `averaging ${ratingLabel(Math.round(stats.avgRating * 10) / 10)}`,
+    coffee.finished_at ? 'finished' : stats.gramsLeft !== null && `${Math.round(stats.gramsLeft)} grams left`,
+    !coffee.finished_at && stats.runningLow && 'running low',
   ]
     .filter(Boolean)
     .join(', ');

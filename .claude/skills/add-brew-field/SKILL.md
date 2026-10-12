@@ -9,6 +9,8 @@ A Brew field lives in several places, and only the database types are generated.
 
 ## 1. Decide the shape
 
+- **Brew or coffee?** Anything about the beans themselves (what's printed on the bag, or the bag) belongs on `coffees`, not `brews`. Same steps with the coffee's files: the form is `components/CoffeeFields.tsx` with `CoffeeFormValues` / `coffeeFormValues` / `toCoffeeInsert` in `lib/form.ts`, the detail is `app/coffee/[id].tsx`, the type narrowing is `CoffeeColumns` in `types/index.ts`, and the API takes it as a coffee detail (`COFFEE_FIELDS` in `lib/brewInput.ts`, matched in `lib/coffeeMatch.ts`).
+
 - **Column type**: `text` for free text, `numeric` for measurements, `integer` for whole counts/seconds, `text` + `check (... in (...))` for a fixed set of choices, `jsonb` for structured groups (like `flavor_profile`).
 - **Name**: snake_case, with a unit suffix for measurements (`_g`, `_c`, `_s`), matching `dose_g`, `water_temp_c`, `brew_time_s`.
 - **Required?** Almost always optional. A new required column breaks every existing row.
@@ -31,9 +33,10 @@ Run `npm run db:types` after the push to regenerate `types/database.ts`; `Brew` 
 
 ## 4. Form: `components/BrewForm.tsx`
 
+- Form values live in `BrewFormValues` and become the payload in `toBrewFields` (`lib/form.ts`), which is where the test goes.
 - State, initialized from `initial`: `useState(initial.<name> ?? '')` for text; `initial.<name>?.toString() ?? ''` for numbers; `initial.<name> ?? undefined` for unions.
 - Submit payload: blank → `null`, never `undefined` (otherwise clearing the field on edit silently doesn't persist). Text: `x.trim() || null`. Numbers: put them in the `numbers` object so they go through `parseNumberField` validation (`{ integer: true }` for integer columns).
-- UI: put it in the matching section ("The Coffee", "Brew Details", "Tasting Notes"). Fixed choices use `SelectPills`; numbers use `keyboardType="numeric"` with a realistic placeholder.
+- UI: put it in the matching section ("Brew Details", "Tasting Notes"). Fixed choices use `SelectPills`; numbers use `keyboardType="numeric"` with a realistic placeholder.
 
 ## 5. Detail: `app/brew/[id].tsx`
 

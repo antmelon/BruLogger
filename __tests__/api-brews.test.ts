@@ -18,10 +18,14 @@ const mockBuilder = Object.assign(mockQuery, {
 });
 const mockUpload = jest.fn();
 const mockRemove = jest.fn();
+const mockFrom = jest.fn();
 
 jest.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
-    from: () => ({ ...mockBuilder, insert: mockInsert }),
+    from: (table: string) => {
+      mockFrom(table);
+      return { ...mockBuilder, insert: mockInsert };
+    },
     storage: {
       from: () => ({
         upload: mockUpload,
@@ -70,6 +74,20 @@ function resolveQuery(result: Result) {
   mockQueryResult = result;
 }
 
+/** What consecutive inserts return (the coffee, then the brew), in order. */
+function insertsReturn(...results: Result[]) {
+  for (const result of results) {
+    mockInsert.mockReturnValueOnce({ select: () => ({ single: () => Promise.resolve(result) }) });
+  }
+}
+
+const COFFEE_ID = 'c0ffee00-0000-4000-8000-000000000001';
+const GUJI = {
+  id: COFFEE_ID, user_id: 'user-1', created_at: '2026-10-01T00:00:00Z', name: 'Guji', roaster: 'Onyx',
+  origin: null, roast_level: null, varietal: null, processing_method: null, roaster_notes: null,
+  roast_date: null, bag_size_g: null, finished_at: null,
+};
+
 /** Results for consecutive queries, in order (e.g. the lookup, then the update). */
 function queueResults(...results: Result[]) {
   mockQueuedResults = results;
@@ -99,6 +117,7 @@ describe('GET /api/brews', () => {
     expect(mockQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
     expect(mockQuery.order).toHaveBeenCalledWith('created_at', { ascending: false });
     expect(mockQuery.limit).toHaveBeenCalledWith(50);
+    expect(mockQuery.select).toHaveBeenCalledWith('*, coffee:coffees!inner(*)');
   });
 
   it('filters by since and validates it', async () => {
@@ -108,11 +127,12 @@ describe('GET /api/brews', () => {
     expect((await GET(req('GET', { query: '?since=nope' }))).status).toBe(400);
   });
 
-  it('searches coffee name, roaster and origin with q, case-insensitively', async () => {
+  it("searches the coffee's name, roaster and origin with q, case-insensitively", async () => {
     await GET(req('GET', { query: `?q=${encodeURIComponent('  Guji, "Hambela" (x)* ')}` }));
     // PostgREST filter syntax characters are stripped so the search can't change the query
     expect(mockQuery.or).toHaveBeenCalledWith(
-      'coffee_name.ilike."%Guji Hambela x%",roaster.ilike."%Guji Hambela x%",origin.ilike."%Guji Hambela x%"',
+      'name.ilike."%Guji Hambela x%",roaster.ilike."%Guji Hambela x%",origin.ilike."%Guji Hambela x%"',
+      { referencedTable: 'coffee' },
     );
     mockQuery.or.mockClear();
     await GET(req('GET', { query: '?q=%20' }));
@@ -121,21 +141,54 @@ describe('GET /api/brews', () => {
 });
 
 describe('POST /api/brews', () => {
-  const brew = { coffee_name: 'Guji', brew_method: 'pour over', dose_g: 15 };
+  const brew = { coffee_name: 'Guji', roaster: 'Onyx', brew_method: 'pour over', dose_g: 15 };
 
-  it('inserts a validated brew for the configured user', async () => {
+  it("saves a brew of a new coffee, made from the details sent, for the configured user", async () => {
+    resolveQuery({ data: [], error: null }); // the user's coffees: none match
+    insertsReturn({ data: { ...GUJI, id: 'c-new' }, error: null }, { data: { id: 'b1' }, error: null });
     const res = await POST(req('POST', { body: brew }));
     expect(res.status).toBe(201);
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      coffee_name: 'Guji', brew_method: 'Pour Over', dose_g: 15, user_id: 'user-1', photo_path: null,
+    expect(mockInsert).toHaveBeenNthCalledWith(1, { name: 'Guji', roaster: 'Onyx', user_id: 'user-1' });
+    expect(mockInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      brew_method: 'Pour Over', dose_g: 15, coffee_id: 'c-new', user_id: 'user-1', photo_path: null,
     }));
+    expect(mockFrom.mock.calls.map(([t]) => t)).toEqual(['coffees', 'coffees', 'brews']);
+  });
+
+  it("uses the user's matching coffee, filling in details it didn't have", async () => {
+    queueResults(
+      { data: [{ ...GUJI, name: 'guji', roaster: 'ONYX' }], error: null }, // the user's coffees
+      { data: null, error: null }, // the fill-in update
+    );
+    const res = await POST(req('POST', { body: { ...brew, origin: 'Ethiopia' } }));
+    expect(res.status).toBe(201);
+    expect(mockQuery.update).toHaveBeenCalledWith({ origin: 'Ethiopia' });
+    expect(mockQuery.eq).toHaveBeenCalledWith('id', COFFEE_ID);
+    expect(mockInsert).toHaveBeenCalledTimes(1);
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ coffee_id: COFFEE_ID }));
+  });
+
+  it("takes a coffee_id, which has to be one of the user's coffees", async () => {
+    resolveQuery({ data: GUJI, error: null });
+    const res = await POST(req('POST', { body: { coffee_id: COFFEE_ID, brew_method: 'Espresso' } }));
+    expect(res.status).toBe(201);
+    expect(mockQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ coffee_id: COFFEE_ID }));
+
+    mockInsert.mockClear();
+    resolveQuery({ data: null, error: null });
+    const unknown = await POST(req('POST', { body: { coffee_id: COFFEE_ID, brew_method: 'Espresso' } }));
+    expect(unknown.status).toBe(400);
+    expect((await unknown.json()).details).toEqual(['No coffee with that coffee_id.']);
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 
   it('returns validation errors as 400 with details', async () => {
     const res = await POST(req('POST', { body: { brew_method: 'Siphon' } }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.details.join(' ')).toMatch(/coffee_name.*brew_method/);
+    expect(body.details.join(' ')).toMatch(/coffee_name/);
+    expect(body.details.join(' ')).toMatch(/brew_method/);
     expect(mockInsert).not.toHaveBeenCalled();
   });
 
@@ -143,15 +196,24 @@ describe('POST /api/brews', () => {
     expect((await POST(req('POST', { body: '{nope' }))).status).toBe(400);
   });
 
-  it('dry_run validates without writing', async () => {
+  it('dry_run validates without writing, showing the coffee it would use or create', async () => {
+    resolveQuery({ data: [GUJI], error: null });
     const res = await POST(req('POST', { body: brew, query: '?dry_run=1' }));
     expect(res.status).toBe(200);
-    expect((await res.json()).brew.brew_method).toBe('Pour Over');
+    const body = await res.json();
+    expect(body.brew.brew_method).toBe('Pour Over');
+    expect(body.brew.coffee).toEqual(GUJI);
+
+    resolveQuery({ data: [], error: null });
+    const fresh = await (await POST(req('POST', { body: { ...brew, roast_date: '2026-10-05' }, query: '?dry_run=1' }))).json();
+    expect(fresh.brew.coffee).toEqual({ id: null, name: 'Guji', roaster: 'Onyx', roast_date: '2026-10-05' });
     expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockQuery.update).not.toHaveBeenCalled();
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
   it('uploads a photo into the user folder and stores its path', async () => {
+    resolveQuery({ data: [GUJI], error: null });
     const data = Buffer.from('fake-jpeg').toString('base64');
     const res = await POST(req('POST', { body: { ...brew, photo: { data, mime_type: 'image/jpeg' } } }));
     expect(res.status).toBe(201);
@@ -170,31 +232,44 @@ describe('POST /api/brews', () => {
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
-  it('removes the uploaded photo if the insert fails', async () => {
-    mockInsert.mockReturnValue({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'boom' } }) }) });
+  it('removes the uploaded photo and the coffee it just created if the brew fails to save', async () => {
+    resolveQuery({ data: [], error: null });
+    insertsReturn({ data: { ...GUJI, id: 'c-new' }, error: null }, { data: null, error: { message: 'boom' } });
     const data = Buffer.from('x').toString('base64');
     const res = await POST(req('POST', { body: { ...brew, photo: { data, mime_type: 'image/png' } } }));
     expect(res.status).toBe(500);
     expect(mockRemove).toHaveBeenCalledWith([mockUpload.mock.calls[0][0]]);
+    expect(mockQuery.delete).toHaveBeenCalled();
+    expect(mockQuery.eq).toHaveBeenCalledWith('id', 'c-new');
+  });
+
+  it("keeps an existing coffee when the brew fails to save", async () => {
+    resolveQuery({ data: [GUJI], error: null });
+    insertsReturn({ data: null, error: { message: 'boom' } });
+    expect((await POST(req('POST', { body: brew }))).status).toBe(500);
+    expect(mockQuery.delete).not.toHaveBeenCalled();
   });
 });
 
 describe('POST /api/brews with an Idempotency-Key', () => {
-  const brew = { coffee_name: 'Guji', brew_method: 'Pour Over' };
+  const brew = { coffee_name: 'Guji', roaster: 'Onyx', brew_method: 'Pour Over' };
   const photo = { data: Buffer.from('x').toString('base64'), mime_type: 'image/jpeg' };
 
   it('returns the brew already saved under that key instead of saving it again', async () => {
-    resolveQuery({ data: { id: 'b1', coffee_name: 'Guji' }, error: null });
+    queueResults(
+      { data: [], error: null }, // the user's coffees
+      { data: { id: 'b1', coffee: GUJI }, error: null }, // the brew saved under the key
+    );
     const res = await POST(req('POST', { body: { ...brew, photo }, headers: { 'idempotency-key': 'draft-42' } }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ brew: { id: 'b1', coffee_name: 'Guji' }, replayed: true });
+    expect(await res.json()).toEqual({ brew: { id: 'b1', coffee: GUJI }, replayed: true });
     expect(mockQuery.eq).toHaveBeenCalledWith('idempotency_key', 'draft-42');
     expect(mockInsert).not.toHaveBeenCalled();
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
   it('stores the key with a new brew, and rejects a blank or overlong key', async () => {
-    resolveQuery({ data: null, error: null }); // no brew saved under this key yet
+    queueResults({ data: [GUJI], error: null }, { data: null, error: null }); // no brew under this key yet
     const res = await POST(req('POST', { body: brew, headers: { 'idempotency-key': 'draft-43' } }));
     expect(res.status).toBe(201);
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ idempotency_key: 'draft-43' }));
@@ -205,18 +280,22 @@ describe('POST /api/brews with an Idempotency-Key', () => {
     }
   });
 
-  it('returns the brew from a concurrent save with the same key, cleaning up its own photo', async () => {
+  it('returns the brew from a concurrent save with the same key, cleaning up its own photo and coffee', async () => {
     queueResults(
+      { data: [], error: null }, // the user's coffees
       { data: null, error: null }, // lookup: not saved yet
+      { data: null, error: null }, // discarding the coffee it created
       { data: { id: 'b1' }, error: null }, // lookup after the unique-index conflict
     );
-    mockInsert.mockReturnValue({
-      select: () => ({ single: () => Promise.resolve({ data: null, error: { code: '23505', message: 'duplicate key' } }) }),
-    });
+    insertsReturn(
+      { data: { ...GUJI, id: 'c-new' }, error: null },
+      { data: null, error: { code: '23505', message: 'duplicate key' } },
+    );
     const res = await POST(req('POST', { body: { ...brew, photo }, headers: { 'idempotency-key': 'draft-44' } }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ brew: { id: 'b1' }, replayed: true });
     expect(mockRemove).toHaveBeenCalledWith([mockUpload.mock.calls[0][0]]);
+    expect(mockQuery.eq).toHaveBeenCalledWith('id', 'c-new');
   });
 });
 
@@ -242,14 +321,54 @@ describe('GET /api/brews/:id', () => {
 describe('PATCH /api/brews/:id', () => {
   it("updates only the fields sent, on the user's brew", async () => {
     queueResults(
-      { data: { id: ID, photo_path: null }, error: null }, // lookup
-      { data: { id: ID, dose_g: 16, roaster: null }, error: null }, // update
+      { data: { id: ID, photo_path: null, coffee: GUJI }, error: null }, // lookup
+      { data: { id: ID, dose_g: 16, grind_size: null }, error: null }, // update
     );
-    const res = await PATCH(req('PATCH', { path: `/${ID}`, body: { dose_g: '16', roaster: null } }));
+    const res = await PATCH(req('PATCH', { path: `/${ID}`, body: { dose_g: '16', grind_size: null } }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ brew: { id: ID, dose_g: 16, roaster: null } });
-    expect(mockQuery.update).toHaveBeenCalledWith({ dose_g: 16, roaster: null });
+    expect(await res.json()).toEqual({ brew: { id: ID, dose_g: 16, grind_size: null } });
+    expect(mockQuery.update).toHaveBeenCalledWith({ dose_g: 16, grind_size: null });
     expect(mockQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
+    expect(mockFrom).not.toHaveBeenCalledWith('coffees');
+  });
+
+  it("edits the brew's coffee when other coffee details change, so every brew of it changes", async () => {
+    const edited = { id: ID, coffee: { ...GUJI, origin: 'Ethiopia' } };
+    queueResults(
+      { data: { id: ID, photo_path: null, coffee: GUJI }, error: null }, // lookup
+      { data: null, error: null }, // the coffee update
+      { data: edited, error: null }, // the brew, read back
+    );
+    const res = await PATCH(req('PATCH', { path: `/${ID}`, body: { origin: 'Ethiopia', roast_level: 'light', roaster: 'onyx' } }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ brew: edited });
+    expect(mockQuery.update).toHaveBeenCalledTimes(1);
+    expect(mockQuery.update).toHaveBeenCalledWith({ origin: 'Ethiopia', roast_level: 'Light', roaster: 'onyx' });
+    expect(mockQuery.eq).toHaveBeenCalledWith('id', COFFEE_ID);
+  });
+
+  it('moves the brew to the coffee a new name or roaster describes, creating it if needed', async () => {
+    queueResults(
+      { data: { id: ID, photo_path: null, coffee: GUJI }, error: null }, // lookup
+      { data: [GUJI], error: null }, // the user's coffees: no Kenya AA from Onyx
+      { data: { id: ID }, error: null }, // the brew update
+    );
+    insertsReturn({ data: { ...GUJI, id: 'c-new', name: 'Kenya AA' }, error: null });
+    const res = await PATCH(req('PATCH', { path: `/${ID}`, body: { coffee_name: 'Kenya AA', origin: 'Kenya' } }));
+    expect(res.status).toBe(200);
+    expect(mockInsert).toHaveBeenCalledWith({ name: 'Kenya AA', roaster: 'Onyx', origin: 'Kenya', user_id: 'user-1' });
+    expect(mockQuery.update).toHaveBeenCalledWith({ coffee_id: 'c-new' });
+  });
+
+  it("moves the brew to another of the user's coffees by coffee_id", async () => {
+    queueResults(
+      { data: { id: ID, photo_path: null, coffee: GUJI }, error: null }, // lookup
+      { data: { ...GUJI, id: COFFEE_ID }, error: null }, // the coffee is the user's
+      { data: { id: ID }, error: null }, // the brew update
+    );
+    const res = await PATCH(req('PATCH', { path: `/${ID}`, body: { coffee_id: COFFEE_ID } }));
+    expect(res.status).toBe(200);
+    expect(mockQuery.update).toHaveBeenCalledWith({ coffee_id: COFFEE_ID });
   });
 
   it("rejects invalid or empty changes, and 404s for a brew that isn't the user's", async () => {

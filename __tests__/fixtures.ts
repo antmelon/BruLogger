@@ -1,17 +1,31 @@
-import { Brew } from '../types';
+import { Brew, Coffee } from '../types';
 
-// A brew with every optional column unset; spread it and override what a test needs.
-export const BASE_BREW: Brew = {
-  id: '1',
+// A coffee with every optional column unset; spread it and override what a test needs.
+export const BASE_COFFEE: Coffee = {
+  id: 'c1',
   user_id: 'u1',
   created_at: '2024-01-01T00:00:00Z',
-  coffee_name: 'Test Coffee',
-  brew_method: 'Pour Over',
+  name: 'Test Coffee',
   roaster: null,
   origin: null,
   roast_level: null,
   varietal: null,
   processing_method: null,
+  roaster_notes: null,
+  roast_date: null,
+  bag_size_g: null,
+  finished_at: null,
+};
+
+// A brew of BASE_COFFEE with every optional column unset; spread it and override what a test
+// needs (`coffee: { ...BASE_COFFEE, origin: 'Kenya' }` for coffee details).
+export const BASE_BREW: Brew = {
+  id: '1',
+  user_id: 'u1',
+  created_at: '2024-01-01T00:00:00Z',
+  coffee_id: 'c1',
+  coffee: BASE_COFFEE,
+  brew_method: 'Pour Over',
   grind_size: null,
   water_temp_c: null,
   dose_g: null,
