@@ -16,7 +16,7 @@ npx expo export --platform web   # production web bundle -> dist/ (good smoke te
 
 Run `npm test && npm run typecheck && npm run lint` before calling a change done. CI (`.github/workflows/ci.yml`, GitHub Actions on Node 24) runs the same checks plus the web export on every pull request and push to `main`, with lint at `--max-warnings 0`, so fix warnings too. `main` has no branch protection, so a push to main isn't blocked by a failing run: check it with `gh run list`.
 
-`sharp` (devDependency, used only by `scripts/generate-icon.js`) fails `npm ci` on machines with a system libvips installed (e.g. Arch, where `appstream` pulls it in): it tries to build from source against it. Fix with `SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm ci`.
+`sharp` (devDependency, used only by `scripts/generate-icon.js`) fails `npm ci` on machines with a system libvips installed (e.g. Arch, where `appstream` pulls it in): it tries to build from source against it. Fix with `SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm ci`. EAS's macOS build images have one too, so `eas.json`'s build profile sets it.
 
 Env: `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (read in `lib/supabase.ts`). Sign-in is Apple or Google only (no passwords), so authenticated screens can't be driven locally without a real account.
 
