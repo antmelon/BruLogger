@@ -1,6 +1,6 @@
 # App Store
 
-What the App Store listing says and how to fill in the parts of App Store Connect that can't live in this repo. Keep all of it true to the app and to the [privacy policy](https://brulogger.com/privacy): when one changes, check the others.
+What the App Store listing says and how to fill in the parts of App Store Connect that can't live in this repo. The app in App Store Connect: https://appstoreconnect.apple.com/apps/6822017723/appstore (also `ascAppId` in `eas.json`). Keep all of it true to the app and to the [privacy policy](https://brulogger.com/privacy): when one changes, check the others.
 
 ## Listing (`store.config.json`)
 

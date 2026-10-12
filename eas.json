@@ -16,6 +16,7 @@
   "submit": {
     "production": {
       "ios": {
+        "ascAppId": "6822017723",
         "appName": "BruLogger: Coffee Journal"
       }
     }
