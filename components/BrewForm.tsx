@@ -251,7 +251,6 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
           onChangeText={setFlavorNotes}
           placeholder="e.g. Blueberry, jasmine, dark chocolate..."
           multiline
-          numberOfLines={3}
         />
 
         <Field
@@ -260,7 +259,6 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
           onChangeText={setGeneralNotes}
           placeholder="Anything else worth noting..."
           multiline
-          numberOfLines={3}
         />
 
         <View style={styles.fieldGroup}>
@@ -354,6 +352,7 @@ const styles = StyleSheet.create({
     color: colors.textDark,
     backgroundColor: colors.surfaceWarm,
   },
+  // Grows with the text. (numberOfLines would cap it on iOS, scrolling long notes inside the box.)
   textarea: { minHeight: 80, textAlignVertical: 'top' },
   row2: { flexDirection: 'row', gap: 10 },
   row3: { flexDirection: 'row', gap: 8 },
