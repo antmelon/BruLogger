@@ -4,6 +4,7 @@ import { colors, shadows } from '../lib/theme';
 import { useInstallPrompt } from '../lib/install';
 import { LegalLinks } from '../components/LegalLinks';
 import { CoffeeIcon, StarIcon, SearchIcon } from '../components/icons';
+import { WelcomeScreen } from '../components/WelcomeScreen';
 
 const FEATURES = [
   {
@@ -23,7 +24,14 @@ const FEATURES = [
   },
 ];
 
-export default function LandingScreen() {
+// The first screen when signed out. The app shows a one-screen welcome with the sign-in buttons;
+// the website shows this marketing page, which leads to its sign-in page (and offers to install
+// the web app).
+export default function IndexScreen() {
+  return Platform.OS === 'web' ? <LandingPage /> : <WelcomeScreen />;
+}
+
+function LandingPage() {
   const router = useRouter();
   const { canInstall, install } = useInstallPrompt();
 
@@ -115,11 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...shadows.icon,
   },
   appName: {
     fontSize: 42,
@@ -157,7 +161,7 @@ const styles = StyleSheet.create({
   features: {
     width: '100%',
     maxWidth: 700,
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
     justifyContent: 'center',

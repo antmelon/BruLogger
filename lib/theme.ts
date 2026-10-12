@@ -40,6 +40,14 @@ export const shadows = {
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
+  // Soft glow under the app icon on the landing and welcome screens
+  icon: {
+    shadowColor: colors.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
   // Glow under prominent primary buttons
   button: {
     shadowColor: colors.primary,

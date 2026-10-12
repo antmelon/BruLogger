@@ -76,15 +76,15 @@ flowchart LR
 
 ### Screens
 
-The root layout (`app/_layout.tsx`) acts as an auth gate. Signed-out visitors can only reach the landing page, the login screen and the OAuth callback; signed-in users go straight to their brews.
+The root layout (`app/_layout.tsx`) acts as an auth gate. Signed-out visitors can only reach the landing page, the login screen and the OAuth callback; signed-in users go straight to their brews. The first screen differs by platform: the website shows a marketing page whose Get Started leads to the sign-in page, while the app shows a one-screen welcome with the sign-in buttons on it (`components/WelcomeScreen.tsx`). Both use the same buttons (`components/SignInButtons.tsx`).
 
 ```mermaid
 flowchart TD
   gate{"Signed in?"}
-  gate -- no --> landing["Landing page<br/>/"]
-  landing --> login["Login<br/>/login"]
-  login -- "Apple or Google (web),<br/>Google (app)" --> callback["OAuth callback<br/>/auth/callback (web)"]
-  login -- "Apple (iPhone)" --> list
+  gate -- no --> landing["Landing page (web)<br/>Welcome screen (app)<br/>/"]
+  landing -- "Get Started (web)" --> login["Login<br/>/login"]
+  landing -- "Apple or Google (app)" --> list
+  login -- "Apple or Google" --> callback["OAuth callback<br/>/auth/callback (web)"]
   callback --> list
   gate -- yes --> list
 
@@ -481,13 +481,13 @@ Restoring a dump into plain Postgres has been tested. A full restore into a new 
 ```text
 app/                    Screens (Expo Router: one file per route)
   _layout.tsx           Auth gate, data cache provider
-  index.tsx             Landing page
+  index.tsx             Landing page (web), welcome screen (app)
   (auth)/login.tsx      Apple and Google sign-in
   auth/callback.tsx     Finishes web sign-in
   (tabs)/               My Brews, Analytics, Profile
   (public)/             Privacy policy, terms, support (no sign-in needed)
   brew/                 Detail, new, edit
-components/             BrewForm, RadarChart, StarRating, SliderInput, LegalPage, icons
+components/             BrewForm, RadarChart, StarRating, SliderInput, SignInButtons, WelcomeScreen, LegalPage, icons
 lib/
   brews.ts              Data access: the only place that queries Supabase for brews
   account.ts            Account deletion
