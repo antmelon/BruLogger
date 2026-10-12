@@ -54,7 +54,9 @@ The terms still require users to be 13 or older. That's about collecting childre
 
 ## Screenshots
 
-One set for 6.9-inch iPhones (1320 × 2868), which App Store Connect also uses for smaller iPhones. EAS Metadata can't upload screenshots, so they're added by hand in App Store Connect. The first three show in search results, so order matters. The 1.0 set, taken 2026-10-12 from a TestFlight build on an iPhone 17 Pro, uses real brews: My Brews, a brew's photo, its flavor chart and notes, Analytics, the average flavor profile, and the edit form's flavor sliders. An iPhone 17 Pro screenshot is 1206 × 2622 (6.3-inch). Scaled to 1320 wide it's 1320 × 2870, so a pixel comes off the top and bottom. Save them as sRGB without an alpha channel.
+Apple's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications) (as of October 2026) require one set for **iPhone with Dynamic Island (medium display)**: 1206 × 2622 or 1179 × 2556, the size an iPhone 17 Pro or 16 Pro takes. A set for the large display (1320 × 2868, a Pro Max) is optional; without one, Apple asks for the 6.5-inch Face ID set instead, so it's uploaded too. App Store Connect rejects a file whose size doesn't match the slot it's dropped into ("File dimensions are invalid"). PNG or JPEG, without an alpha channel. EAS Metadata can't upload screenshots, so they're added by hand in App Store Connect. The first three show in search results, so order matters.
+
+The 1.0 set was taken on 2026-10-12 from a TestFlight build on an iPhone 17 Pro, using real brews: My Brews with photo thumbnails, a brew's photo, its flavor chart and notes, Analytics, the average flavor profile, and the edit form's flavor sliders. They're used as taken for the medium slot. For the large slot they're scaled to 1320 wide, which gives 1320 × 2870, so a pixel comes off the top and bottom.
 
 iPhone-only for now (decided 2026-10-11, `ios.supportsTablet: false`), so no iPad screenshots are needed and iPads run the iPhone app scaled up. Supporting iPad later means checking the layout on iPad and adding 13-inch iPad screenshots.
 
