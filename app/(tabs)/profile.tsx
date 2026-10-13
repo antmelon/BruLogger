@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { deleteAccount } from '../../lib/account';
+import { confirmsWithApple, deleteAccount } from '../../lib/account';
 import { useInstallPrompt } from '../../lib/install';
 import { ratingLabel } from '../../lib/a11y';
 import { LegalLinks } from '../../components/LegalLinks';
@@ -32,15 +32,19 @@ export default function ProfileScreen() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
 
-  // On success the session ends and the auth gate takes the user back to the landing page.
-  // Closing the Apple sheet (Apple accounts confirm with Apple first) changes nothing.
+  // On success the session ends and the auth gate takes the user back to the landing page. An
+  // Apple account confirms with Apple first (iOS only), and closing that sheet deletes nothing. The
+  // sheet looks like signing in again, so the confirmation warns about it and this says so.
   async function performDeleteAccount() {
     setDeleting(true);
     try {
-      if (!(await deleteAccount())) setDeleting(false);
-    } catch {
+      if (await deleteAccount()) return;
       setDeleting(false);
-      const message = 'Could not delete your account. Please try again.';
+      Alert.alert('Account not deleted', 'Your account is deleted only once you confirm with Apple. Nothing was deleted.');
+    } catch (e) {
+      setDeleting(false);
+      const detail = e instanceof Error && e.message ? `\n\n${e.message}` : '';
+      const message = `Could not delete your account. Please try again.${detail}`;
       if (Platform.OS === 'web') window.alert(message);
       else Alert.alert('Delete failed', message);
     }
@@ -50,7 +54,10 @@ export default function ProfileScreen() {
     const count = brews?.length ?? 0;
     const message =
       `This permanently deletes your account, your ${count} ${count === 1 ? 'brew' : 'brews'} and their ` +
-      "photos. It can't be undone.";
+      "photos. It can't be undone." +
+      (user && confirmsWithApple(user)
+        ? '\n\nTo finish, confirm with Apple on the next screen. That also removes BruLogger from your Apple Account.'
+        : '');
     if (Platform.OS === 'web') {
       if (window.confirm(`Delete your account?\n\n${message}`)) performDeleteAccount();
     } else {
