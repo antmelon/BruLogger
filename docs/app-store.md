@@ -14,7 +14,7 @@ Entered in App Store Connect, not kept here, because Apple requires a phone numb
 
 - **Contact:** Anthony Longo, support@brulogger.com, plus a phone number.
 - **Sign-in required:** no demo account. Reviewers sign in with Apple, which creates a new, empty account.
-- **Screen recording** (the Attachment box, and the reply to App Review): Apple asked for one for 1.0 (October 2026), as it does for new developer accounts. Re-record it when the flow it shows changes. It's recorded on a physical iPhone on the latest iOS and starts by launching the app: sign in with a test account, log a brew with a photo, open, edit and search brews, Analytics, then Profile > Delete Account. The test account's email has to differ from every real account's, because Supabase joins sign-ins with the same email into one account, and the recording ends by deleting it. My Brews being empty after signing in confirms it's a new account.
+- **Screen recording** (the Attachment box, and the reply to App Review): Apple asked for one for 1.0 (October 2026), as it does for new developer accounts. 1.0 was resubmitted on 2026-10-13 with build 4 and these notes, recorded on build 4. Re-record it when the flow it shows changes. It's recorded on a physical iPhone on the latest iOS and starts by launching the app: sign in with a test account, log a brew with a photo, open, edit and search brews, Analytics, then Profile > Delete Account. The test account's email has to differ from every real account's, because Supabase joins sign-ins with the same email into one account, and the recording ends by deleting it. My Brews being empty after signing in confirms it's a new account.
 - **Notes:** these answer the six questions App Review asked for 1.0. From 1.1.0, item 3 also needs the Coffees tab, which build 1.0.0 doesn't have (it reaches 1.0.0 as an over-the-air update after approval).
 
   ```text
@@ -30,7 +30,7 @@ Entered in App Store Connect, not kept here, because Apple requires a phone numb
   - Tap a brew to open it. Edit Brew and Delete are on its page.
   - My Brews has a search box, filters and sorting.
   - Analytics shows ratings over time, favorite methods and roasts, and the average flavor profile once brews are logged.
-  - Delete the account: Profile, Delete Account, then confirm. This permanently deletes the account, its brews and its photos. For an account that signed in with Apple, the app first asks to confirm with Apple and revokes the Sign in with Apple token, then deletes the data.
+  - Delete the account: Profile, Delete Account, then confirm. This permanently deletes the account, its brews and its photos. For an account that signed in with Apple, Apple's sheet then appears to confirm: continue on it, and the app revokes the Sign in with Apple token before deleting the data.
   Brews and photos are private to the account that made them. Nothing is shared with or shown to other users, so there's no content to report or block.
 
   4. External services
