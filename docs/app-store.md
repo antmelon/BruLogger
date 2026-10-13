@@ -14,9 +14,39 @@ Entered in App Store Connect, not kept here, because Apple requires a phone numb
 
 - **Contact:** Anthony Longo, support@brulogger.com, plus a phone number.
 - **Sign-in required:** no demo account. Reviewers sign in with Apple, which creates a new, empty account.
-- **Notes:**
+- **Screen recording** (the Attachment box, and the reply to App Review): Apple asked for one for 1.0 (October 2026), as it does for new developer accounts. Re-record it when the flow it shows changes. It's recorded on a physical iPhone on the latest iOS and starts by launching the app: sign in with a test account, log a brew with a photo, open, edit and search brews, Analytics, then Profile > Delete Account. The test account's email has to differ from every real account's, because Supabase joins sign-ins with the same email into one account, and the recording ends by deleting it. My Brews being empty after signing in confirms it's a new account.
+- **Notes:** these answer the six questions App Review asked for 1.0. From 1.1.0, item 3 also needs the Coffees tab, which build 1.0.0 doesn't have (it reaches 1.0.0 as an over-the-air update after approval).
 
-  > BruLogger is a personal coffee journal. No demo account is needed: sign in with Apple (or Google) on the first screen, which creates a new, empty account. Tap "+ Log Brew" to add a brew (its first section adds the coffee); the My Brews, Coffees, Analytics and Profile tabs fill in as brews are added. Brews and photos are private to each account and never shown to other users. To delete the account and all its data: Profile > Delete Account. For an account that signed in with Apple, the app asks to confirm with Apple, then revokes its Sign in with Apple token before deleting anything.
+  ```text
+  1. Screen recording
+  Attached. Recorded on an iPhone 17 Pro with the latest iOS, starting from launch. It shows signing in with a new account (the first sign-in creates the account), logging a brew with a photo, opening, editing and searching brews, the Analytics tab, and deleting the account in Profile.
+
+  2. Purpose and audience
+  BruLogger is a personal coffee journal for people who make coffee at home: pour over, espresso, AeroPress, French press, cold brew. Getting a coffee to taste right takes adjusting the recipe from cup to cup, and it's hard to remember what changed. BruLogger records each brew: the coffee, the method, the recipe (grind, dose, yield, water temperature, brew time), a star rating, an optional flavor profile, notes and a photo. People can search their history, repeat what worked, and see which methods and roasts they rate highest. It's free, with no ads, in-app purchases or subscriptions.
+
+  3. Setup and access
+  No demo account or sample files are needed. On the first screen, tap Continue with Apple (any Apple ID works) or Continue with Google. The first sign-in creates a new, empty account; there's no separate registration form.
+  - Log a brew: My Brews tab, then "+ Log Brew". Only Coffee Name and Brew Method are required. The photo button takes a photo or picks one from the library.
+  - Tap a brew to open it. Edit Brew and Delete are on its page.
+  - My Brews has a search box, filters and sorting.
+  - Analytics shows ratings over time, favorite methods and roasts, and the average flavor profile once brews are logged.
+  - Delete the account: Profile, Delete Account, then confirm. This permanently deletes the account, its brews and its photos. For an account that signed in with Apple, the app first asks to confirm with Apple and revokes the Sign in with Apple token, then deletes the data.
+  Brews and photos are private to the account that made them. Nothing is shared with or shown to other users, so there's no content to report or block.
+
+  4. External services
+  - Supabase: database, sign-in and photo storage
+  - Sign in with Apple and Sign in with Google: signing in
+  - Vercel: hosts brulogger.com and the server endpoint the app calls to revoke Sign in with Apple when an account is deleted
+  - Sentry: crash reports (errors only, without personal data)
+  - Expo: the framework the app is built with, and its build and update service
+  No AI services, payment processors, ad networks or analytics.
+
+  5. Regional differences
+  None. The app works the same in every region where it's available. It's in English.
+
+  6. Regulated industry or third-party material
+  Not applicable. BruLogger isn't in a regulated industry and has no third-party protected material. All content is what users enter themselves.
+  ```
 
 ## App Privacy (the privacy "nutrition label")
 
