@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { File } from 'expo-file-system';
 import { supabase } from './supabase';
 import { Brew, BrewInsert } from '../types';
 import { PHOTO_BUCKET } from './storage';
@@ -64,8 +65,9 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  let body: Blob | FormData;
+  let body: Blob | ArrayBuffer;
   let filename: string;
+  let contentType: string | undefined;
 
   if (Platform.OS === 'web') {
     // Web picker URIs are data:/blob: URLs with no file extension; derive it from the blob type
@@ -74,16 +76,18 @@ export async function uploadBrewPhoto(localUri: string): Promise<string> {
     filename = `${user.id}/${Date.now()}.${ext}`;
     body = blob;
   } else {
-    // Native: upload via FormData so RN streams the file (fetch().blob() broke iOS uploads, see a1fbb5d)
-    const ext = localUri.split('.').pop()?.split('?')[0] ?? 'jpg';
+    // Native: the file's bytes. Since SDK 57 the global fetch is Expo's, which rejects React
+    // Native's FormData {uri} parts ("Unsupported FormDataPart implementation"), and RN's Blobs
+    // never uploaded from iOS (a1fbb5d). Photos are resized first, so reading one whole is fine.
+    const ext = localUri.split('.').pop()?.split('?')[0]?.toLowerCase() ?? 'jpg';
     filename = `${user.id}/${Date.now()}.${ext}`;
-    body = new FormData();
-    body.append('file', {
-      uri: localUri, name: filename, type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-    } as unknown as Blob);
+    body = await new File(localUri).arrayBuffer();
+    contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
   }
 
-  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(filename, body);
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(filename, body, contentType ? { contentType } : undefined);
   if (error) throw error;
   return filename;
 }

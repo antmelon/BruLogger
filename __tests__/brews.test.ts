@@ -1,4 +1,7 @@
-import { getBrews, getBrew, createBrew, updateBrew, deleteBrew, deleteBrewPhoto, getPhotoUrl } from '../lib/brews';
+import { Platform } from 'react-native';
+import {
+  getBrews, getBrew, createBrew, updateBrew, deleteBrew, deleteBrewPhoto, getPhotoUrl, uploadBrewPhoto,
+} from '../lib/brews';
 
 const mockOrder = jest.fn();
 const mockSingle = jest.fn();
@@ -11,6 +14,12 @@ const mockFrom = jest.fn();
 const mockGetUser = jest.fn();
 const mockRemove = jest.fn();
 const mockCreateSignedUrl = jest.fn();
+const mockUpload = jest.fn();
+const mockReadFile = jest.fn();
+
+jest.mock('expo-file-system', () => ({
+  File: jest.fn().mockImplementation((uri: string) => ({ arrayBuffer: () => mockReadFile(uri) })),
+}));
 
 jest.mock('../lib/supabase', () => ({
   supabase: {
@@ -20,6 +29,7 @@ jest.mock('../lib/supabase', () => ({
       from: () => ({
         remove: (...args: unknown[]) => mockRemove(...args),
         createSignedUrl: (...args: unknown[]) => mockCreateSignedUrl(...args),
+        upload: (...args: unknown[]) => mockUpload(...args),
       }),
     },
   },
@@ -145,6 +155,41 @@ describe('deleteBrewPhoto', () => {
     mockRemove.mockResolvedValue({ error: null });
     await deleteBrewPhoto('user-1/123.jpg');
     expect(mockRemove).toHaveBeenCalledWith(['user-1/123.jpg']);
+  });
+});
+
+describe('uploadBrewPhoto', () => {
+  it('uploads a native photo file as bytes into the user\'s folder', async () => {
+    // SDK 57's fetch (expo/fetch) rejects React Native's FormData {uri} parts
+    expect(Platform.OS).toBe('ios');
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    const bytes = new ArrayBuffer(8);
+    mockReadFile.mockResolvedValue(bytes);
+    mockUpload.mockResolvedValue({ error: null });
+
+    const path = await uploadBrewPhoto('file:///cache/ImageManipulator/abc.jpg');
+
+    expect(mockReadFile).toHaveBeenCalledWith('file:///cache/ImageManipulator/abc.jpg');
+    expect(path).toMatch(/^user-1\/\d+\.jpg$/);
+    expect(mockUpload).toHaveBeenCalledWith(path, bytes, { contentType: 'image/jpeg' });
+  });
+
+  it('names the content type from the file extension', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mockReadFile.mockResolvedValue(new ArrayBuffer(8));
+    mockUpload.mockResolvedValue({ error: null });
+
+    const path = await uploadBrewPhoto('file:///photos/IMG_1.HEIC');
+
+    expect(path).toMatch(/^user-1\/\d+\.heic$/);
+    expect(mockUpload).toHaveBeenCalledWith(path, expect.any(ArrayBuffer), { contentType: 'image/heic' });
+  });
+
+  it('throws when the upload fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mockReadFile.mockResolvedValue(new ArrayBuffer(8));
+    mockUpload.mockResolvedValue({ error: new Error('Payload too large') });
+    await expect(uploadBrewPhoto('file:///cache/abc.jpg')).rejects.toThrow('Payload too large');
   });
 });
 
