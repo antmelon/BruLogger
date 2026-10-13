@@ -1,4 +1,5 @@
-import { deleteAccount } from '../lib/account';
+import { User } from '@supabase/supabase-js';
+import { confirmsWithApple, deleteAccount } from '../lib/account';
 
 const mockGetUser = jest.fn();
 const mockSignOut = jest.fn();
@@ -164,5 +165,20 @@ describe('deleteAccount for someone who signed in with Apple', () => {
     await expect(deleteAccount()).resolves.toBe(true);
     expect(mockAppleSignIn).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('confirmsWithApple', () => {
+  const withProviders = (...providers: string[]) =>
+    ({ id: 'user-1', identities: providers.map((provider) => ({ provider })) }) as unknown as User;
+
+  it('is true on iOS for an account that signs in with Apple', () => {
+    expect(confirmsWithApple(withProviders('apple'))).toBe(true);
+    expect(confirmsWithApple(withProviders('google', 'apple'))).toBe(true);
+  });
+
+  it('is false for an account without Apple', () => {
+    expect(confirmsWithApple(withProviders('google'))).toBe(false);
+    expect(confirmsWithApple({ id: 'user-1' } as User)).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { PHOTO_BUCKET } from './storage';
 import { revokeAppleSignIn } from './appleSignIn';
@@ -17,8 +18,7 @@ export async function deleteAccount(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const signedInWithApple = user.identities?.some((identity) => identity.provider === 'apple');
-  if (Platform.OS === 'ios' && signedInWithApple && !(await revokeAppleSignIn())) return false;
+  if (confirmsWithApple(user) && !(await revokeAppleSignIn())) return false;
 
   const paths = await listPhotos(user.id);
   for (let i = 0; i < paths.length; i += STORAGE_BATCH) {
@@ -32,6 +32,11 @@ export async function deleteAccount(): Promise<boolean> {
   // The server-side session was deleted with the user, so only this device's copy is left
   await supabase.auth.signOut({ scope: 'local' });
   return true;
+}
+
+/** Whether deleting this account opens the Apple sheet first: on iOS, for someone who signed in with Apple. */
+export function confirmsWithApple(user: User): boolean {
+  return Platform.OS === 'ios' && !!user.identities?.some((identity) => identity.provider === 'apple');
 }
 
 /** The Storage API lists, and removes, at most this many objects per request. */
