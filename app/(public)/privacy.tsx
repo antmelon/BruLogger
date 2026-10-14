@@ -5,7 +5,7 @@ import LegalPage, { LegalSection } from '../../components/LegalPage';
 // before shipping anything that collects something new (AI photo parsing, another sign-in
 // provider).
 
-const UPDATED = 'October 12, 2026';
+const UPDATED = 'October 14, 2026';
 
 const INTRO = [
   'BruLogger is a coffee journal. This policy explains what BruLogger stores about you, why, who else handles it, and how to delete it.',
@@ -19,6 +19,7 @@ const SECTIONS: LegalSection[] = [
       'Your account. When you sign in with Apple, Apple shares your email address (or, if you choose Hide My Email, a private address that forwards to yours) and, if you choose to share it, your name. When you sign in with Google, Google shares your name, email address and profile picture. Either way, we also get an ID that links that account to BruLogger.',
       'Your brews. Everything you enter: the coffee, how you brewed it, ratings, flavor profiles and notes, and when you logged each brew.',
       'Your photos. Photos you add to brews are stored privately. Only your account can see them, through links that expire after an hour.',
+      'Bag scans. If you use Scan the Bag, the photo of the bag is sent to Anthropic\'s Claude to read its label, then discarded: we don\'t store it. We keep a record of each scan (when it happened and how much AI processing it took) to apply the daily limit.',
       'Technical logs. Our hosting and sign-in providers record technical details such as IP address, browser or device type, and the time of each request, to keep the service running and secure. These logs are kept for a short time.',
       'Crash reports. When the app or website runs into an error, it sends us a report so we can fix it: what went wrong and where in the code, the steps just before it, the app version, and your device type and operating system. Reports don\'t include your name, email address, IP address or anything else that identifies you or your account, and anything that would give access to your account or photos is removed before they\'re sent.',
     ],
@@ -35,7 +36,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'How we use it',
     paragraphs: [
-      'Only to run BruLogger: to sign you in, to store and show you your brews and photos, and to work out your stats. We may contact you about your account or about changes to this policy.',
+      'Only to run BruLogger: to sign you in, to store and show you your brews and photos, to read the coffee bags you scan, and to work out your stats. We may contact you about your account or about changes to this policy.',
     ],
   },
   {
@@ -49,6 +50,7 @@ const SECTIONS: LegalSection[] = [
       'Apple and Google: sign you in, under their own privacy policies.',
       'Backblaze: stores our encrypted backups.',
       'Sentry: receives crash reports.',
+      'Anthropic, through Vercel\'s AI Gateway: reads the coffee bag photos you choose to scan.',
     ],
   },
   {

@@ -45,7 +45,7 @@ export default function CoffeeForm({ initial, onSubmit, submitLabel }: CoffeeFor
     <ScrollView style={formStyles.container} contentContainerStyle={formStyles.content} keyboardShouldPersistTaps="handled">
       <View style={formStyles.section}>
         <Text style={formStyles.sectionTitle} role="heading">The Coffee</Text>
-        <CoffeeFields values={values} onChange={(patch) => setValues((v) => ({ ...v, ...patch }))} />
+        <CoffeeFields values={values} onChange={(patch) => setValues((v) => ({ ...v, ...patch }))} scan={!initial} />
       </View>
 
       {error ? <Text style={formStyles.errorText} role="alert">{error}</Text> : null}

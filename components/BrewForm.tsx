@@ -239,7 +239,7 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
             ) : null}
             {coffeeId === null ? (
               <View style={coffeeOptions.length > 0 ? styles.newCoffee : undefined}>
-                <CoffeeFields values={newCoffee} onChange={(patch) => setNewCoffee((v) => ({ ...v, ...patch }))} />
+                <CoffeeFields values={newCoffee} onChange={(patch) => setNewCoffee((v) => ({ ...v, ...patch }))} scan />
               </View>
             ) : null}
           </>

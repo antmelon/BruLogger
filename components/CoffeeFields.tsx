@@ -4,11 +4,15 @@ import { CoffeeFormValues, parseRoastDate } from '../lib/form';
 import { daysAgo, daysSinceRoast, formatRoastDate } from '../lib/coffeeStats';
 import { colors } from '../lib/theme';
 import { Field, SelectPills, formStyles } from './FormFields';
+import ScanBagButton, { BAG_SCAN_AVAILABLE } from './ScanBagButton';
 
-/** A coffee's fields, used by the coffee form and by "New coffee" in the brew form. */
+/**
+ * A coffee's fields, used by the coffee form and by "New coffee" in the brew form. `scan` offers
+ * Scan the Bag above them, for a new coffee.
+ */
 export default function CoffeeFields({
-  values, onChange,
-}: { values: CoffeeFormValues; onChange: (patch: Partial<CoffeeFormValues>) => void }) {
+  values, onChange, scan = false,
+}: { values: CoffeeFormValues; onChange: (patch: Partial<CoffeeFormValues>) => void; scan?: boolean }) {
   const roastDate = parseRoastDate(values.roastDate);
   // Says back the date it read, since it's typed rather than picked
   const roastDateHint = roastDate
@@ -17,6 +21,8 @@ export default function CoffeeFields({
 
   return (
     <>
+      {scan && BAG_SCAN_AVAILABLE ? <ScanBagButton onScanned={onChange} /> : null}
+
       <Field
         label="Coffee Name"
         required
