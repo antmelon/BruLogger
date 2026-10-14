@@ -46,7 +46,8 @@
       // Shows public/offline.html instead of the browser's error page when there's no connection
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js');
+          // Some browsers refuse (Firefox private windows, Google's page checks); the site works without it
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
         });
       }
     </script>
