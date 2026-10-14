@@ -11,6 +11,10 @@
       "env": {
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       }
+    },
+    "preview": {
+      "extends": "production",
+      "channel": "preview"
     }
   },
   "submit": {
@@ -19,6 +23,9 @@
         "ascAppId": "6822017723",
         "appName": "BruLogger: Coffee Journal"
       }
+    },
+    "preview": {
+      "extends": "production"
     }
   }
 }
