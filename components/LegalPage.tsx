@@ -1,5 +1,7 @@
 import { Fragment } from 'react';
-import { ScrollView, View, Text, StyleSheet, Linking, StyleProp, TextStyle } from 'react-native';
+import {
+  ScrollView, View, Text, StyleSheet, Linking, Alert, Platform, StyleProp, TextStyle,
+} from 'react-native';
 import { colors, shadows } from '../lib/theme';
 
 export interface LegalSection {
@@ -10,13 +12,23 @@ export interface LegalSection {
 
 const EMAIL = /([\w.+-]+@brulogger\.com)/;
 
+/** Starts an email to the address, or says where to write when there's no email app to open. */
+function writeTo(address: string) {
+  // Rejects on an iPhone without Mail set up ("Unable to open URL")
+  Linking.openURL(`mailto:${address}`).catch(() => {
+    const message = `No email app is set up on this device. You can write to ${address} from any email account.`;
+    if (Platform.OS === 'web') window.alert(message);
+    else Alert.alert('No email app', message);
+  });
+}
+
 /** Text with any brulogger.com email address made into a mailto link. */
 function Prose({ children, style }: { children: string; style: StyleProp<TextStyle> }) {
   return (
     <Text style={style} selectable>
       {children.split(EMAIL).map((part, i) =>
         EMAIL.test(part) ? (
-          <Text key={i} style={styles.link} role="link" onPress={() => Linking.openURL(`mailto:${part}`)}>
+          <Text key={i} style={styles.link} role="link" onPress={() => writeTo(part)}>
             {part}
           </Text>
         ) : (
