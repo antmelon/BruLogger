@@ -1,8 +1,8 @@
 import {
-  BrewFormValues, CoffeeFormValues, coffeeFormValues, parseNumberField, parseRoastDate, toBrewFields,
-  toCoffeeInsert,
+  brewAgainFrom, BrewFormValues, CoffeeFormValues, coffeeFormValues, parseNumberField, parseRoastDate,
+  toBrewFields, toCoffeeInsert,
 } from '../lib/form';
-import { BASE_COFFEE } from './fixtures';
+import { BASE_BREW, BASE_COFFEE } from './fixtures';
 
 describe('parseNumberField', () => {
   it('returns null for blank input', () => {
@@ -186,5 +186,40 @@ describe('coffeeFormValues', () => {
       name: 'Kenya AA', roaster: 'Sey', roastLevel: 'Light', roastDate: 'Oct 5, 2026', bagSize: '250', origin: '',
     }));
     expect(parseRoastDate(values.roastDate, TODAY)).toBe('2026-10-05');
+  });
+});
+
+describe('brewAgainFrom', () => {
+  const past = {
+    ...BASE_BREW,
+    brew_method: 'Espresso' as const,
+    grind_size: '8',
+    water_temp_c: 94,
+    dose_g: 18,
+    yield_g: 36,
+    brew_time_s: 28,
+    flavor_notes: 'cherry',
+    general_notes: 'try finer',
+    rating: 4,
+    flavor_profile: { aromatics: 4, acidity: 3, sweetness: 4, aftertaste: 3, body: 4 },
+    photo_path: 'u1/1.jpg',
+  };
+
+  it('copies the coffee, method and recipe, and none of how it tasted', () => {
+    expect(brewAgainFrom(past)).toEqual({
+      coffee_id: 'c1',
+      brew_method: 'Espresso',
+      grind_size: '8',
+      water_temp_c: 94,
+      dose_g: 18,
+      yield_g: 36,
+      brew_time_s: 28,
+    });
+  });
+
+  it("leaves the coffee to the form's default once that bag is finished", () => {
+    const finished = { ...past, coffee: { ...BASE_COFFEE, finished_at: '2024-02-01T00:00:00Z' } };
+    expect(brewAgainFrom(finished)).not.toHaveProperty('coffee_id');
+    expect(brewAgainFrom(finished).dose_g).toBe(18);
   });
 });

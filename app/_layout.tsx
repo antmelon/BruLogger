@@ -83,6 +83,7 @@ function RootLayout() {
         <Stack.Screen name="brew/[id]" options={stackedScreen('Brew Details')} />
         <Stack.Screen name="brew/new" options={stackedScreen('Log a Brew')} />
         <Stack.Screen name="brew/edit/[id]" options={stackedScreen('Edit Brew')} />
+        <Stack.Screen name="brew/again/[id]" options={stackedScreen('Brew Again')} />
         <Stack.Screen name="coffee/[id]" options={stackedScreen('Coffee')} />
         <Stack.Screen name="coffee/new" options={stackedScreen('Add a Coffee')} />
         <Stack.Screen name="coffee/edit/[id]" options={stackedScreen('Edit Coffee')} />

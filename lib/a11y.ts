@@ -1,5 +1,6 @@
 import { Brew, Coffee, FlavorProfile } from '../types';
 import { CoffeeStats, daysAgo } from './coffeeStats';
+import { formatRatio } from './ratio';
 
 // What screen readers say for things that are only drawn (star ratings, the flavor radar) and for
 // cards read as one item.
@@ -19,6 +20,11 @@ export function stepRating(rating: number, direction: 'increment' | 'decrement')
 }
 
 const AXES: (keyof FlavorProfile)[] = ['aromatics', 'acidity', 'sweetness', 'aftertaste', 'body'];
+
+/** A brew ratio in words, e.g. "1 to 16", since "1:16" is read out as "1 colon 16". */
+export function ratioLabel(ratio: number): string {
+  return formatRatio(ratio).replace(':', ' to ');
+}
 
 /** The radar chart in words, axes in the chart's order. Averages are rounded to one decimal. */
 export function flavorProfileLabel(profile: FlavorProfile): string {

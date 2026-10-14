@@ -10,6 +10,7 @@ import { useBrews, useCoffees, useCreateCoffee, usePhotoUrl } from '../lib/brewQ
 import { prepareForUpload } from '../lib/photos';
 import { coffeeFormValues, CoffeeFormValues, toBrewFields, toCoffeeInsert } from '../lib/form';
 import { daysAgo, daysSinceRoast, pickerCoffees } from '../lib/coffeeStats';
+import { editRatioFields, ratioFields } from '../lib/ratio';
 import { colors } from '../lib/theme';
 import CoffeeFields from './CoffeeFields';
 import { Field, SelectPills, formStyles } from './FormFields';
@@ -24,6 +25,8 @@ interface BrewFormProps {
   initial?: Partial<BrewInsert>;
   onSubmit: (brew: BrewInsert) => Promise<void>;
   submitLabel?: string;
+  /** Brew Again: the past brew's general notes, shown above the form as a reminder */
+  lastNotes?: string | null;
 }
 
 const NO_COFFEES: Coffee[] = [];
@@ -74,7 +77,7 @@ function CoffeePicker({
   );
 }
 
-export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save Brew' }: BrewFormProps) {
+export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save Brew', lastNotes }: BrewFormProps) {
   const { data: coffees = NO_COFFEES, isPending: coffeesPending, isError: coffeesFailed } = useCoffees();
   const { data: brews } = useBrews();
   const createCoffee = useCreateCoffee();
@@ -90,8 +93,13 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   const [brewMethod, setBrewMethod] = useState<BrewMethod | null>(initial.brew_method ?? null);
   const [grindSize, setGrindSize] = useState(initial.grind_size ?? '');
   const [waterTemp, setWaterTemp] = useState(initial.water_temp_c?.toString() ?? '');
-  const [dose, setDose] = useState(initial.dose_g?.toString() ?? '');
-  const [yieldG, setYieldG] = useState(initial.yield_g?.toString() ?? '');
+  // Dose, yield and ratio change together: a typed ratio fills in the yield (lib/ratio.ts)
+  const [amounts, setAmounts] = useState(() => (
+    ratioFields(initial.dose_g?.toString() ?? '', initial.yield_g?.toString() ?? '')
+  ));
+  const editAmount = (field: 'dose' | 'yieldG' | 'ratio') => (text: string) => (
+    setAmounts((fields) => editRatioFields(fields, field, text))
+  );
   const [brewTime, setBrewTime] = useState(initial.brew_time_s?.toString() ?? '');
   const [flavorNotes, setFlavorNotes] = useState(initial.flavor_notes ?? '');
   const [generalNotes, setGeneralNotes] = useState(initial.general_notes ?? '');
@@ -174,8 +182,8 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
       return;
     }
     const result = toBrewFields({
-      brewMethod, grindSize, waterTemp, dose, yieldG, brewTime, flavorNotes, generalNotes, rating,
-      profile, photoPath,
+      brewMethod, grindSize, waterTemp, dose: amounts.dose, yieldG: amounts.yieldG, brewTime,
+      flavorNotes, generalNotes, rating, profile, photoPath,
     });
     if (!result.ok) {
       setError(result.error);
@@ -209,6 +217,13 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
   return (
     <ScrollView style={formStyles.container} contentContainerStyle={formStyles.content} keyboardShouldPersistTaps="handled">
 
+      {lastNotes ? (
+        <View style={formStyles.section}>
+          <Text style={formStyles.sectionTitle} role="heading">Notes From Last Time</Text>
+          <Text style={styles.lastNotes}>{lastNotes}</Text>
+        </View>
+      ) : null}
+
       {/* Which coffee: one in use, or a new one */}
       <View style={formStyles.section}>
         <Text style={formStyles.sectionTitle} role="heading">The Coffee</Text>
@@ -240,9 +255,20 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 
         <View style={formStyles.row3}>
           <Field label="Water (°C)" containerStyle={formStyles.flex1} value={waterTemp} onChangeText={setWaterTemp} keyboardType="numeric" placeholder="93" />
-          <Field label="Dose (g)" containerStyle={formStyles.flex1} value={dose} onChangeText={setDose} keyboardType="numeric" placeholder="18" />
-          <Field label="Yield (g)" containerStyle={formStyles.flex1} value={yieldG} onChangeText={setYieldG} keyboardType="numeric" placeholder="36" />
+          <Field label="Dose (g)" containerStyle={formStyles.flex1} value={amounts.dose} onChangeText={editAmount('dose')} keyboardType="numeric" placeholder="18" />
+          <Field label="Yield (g)" containerStyle={formStyles.flex1} value={amounts.yieldG} onChangeText={editAmount('yieldG')} keyboardType="numeric" placeholder="36" />
         </View>
+
+        <Field
+          label="Ratio (1:x)"
+          containerStyle={styles.ratioField}
+          value={amounts.ratio}
+          onChangeText={editAmount('ratio')}
+          keyboardType="numeric"
+          placeholder="2"
+          aria-label="Ratio, grams of yield per gram of coffee. Typing one fills in the yield from the dose."
+        />
+        <Text style={styles.hint} aria-hidden>Type a ratio to fill in the yield from the dose.</Text>
 
         <Field label="Brew Time (seconds)" value={brewTime} onChangeText={setBrewTime} keyboardType="numeric" placeholder="240" />
       </View>
@@ -349,6 +375,9 @@ export default function BrewForm({ initial = {}, onSubmit, submitLabel = 'Save B
 }
 
 const styles = StyleSheet.create({
+  lastNotes: { fontSize: 15, lineHeight: 22, color: colors.textDark },
+  ratioField: { marginBottom: 4 },
+  hint: { fontSize: 12, color: colors.textLight, marginBottom: 12 },
   coffeeLoading: { paddingVertical: 12 },
   coffeeError: { color: colors.error, fontSize: 14, marginBottom: 10 },
   coffeeList: { gap: 8 },

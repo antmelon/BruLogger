@@ -1,4 +1,4 @@
-import { BrewInsert, BrewMethod, Coffee, CoffeeInsert, FlavorProfile, RoastLevel } from '../types';
+import { Brew, BrewInsert, BrewMethod, Coffee, CoffeeInsert, FlavorProfile, RoastLevel } from '../types';
 import { formatRoastDate } from './coffeeStats';
 
 /**
@@ -65,6 +65,23 @@ export function toBrewFields(v: BrewFormValues): Result<BrewFields> {
       flavor_profile: v.profile,
       photo_path: v.photoPath,
     },
+  };
+}
+
+/**
+ * A new brew's starting values from a past one (Brew Again): its coffee, method and recipe, and
+ * nothing about how it tasted. A finished coffee isn't carried over, since that bag is used up, so
+ * the form starts with its usual choice instead.
+ */
+export function brewAgainFrom(brew: Brew): Partial<BrewInsert> {
+  return {
+    ...(brew.coffee.finished_at ? {} : { coffee_id: brew.coffee_id }),
+    brew_method: brew.brew_method,
+    grind_size: brew.grind_size,
+    water_temp_c: brew.water_temp_c,
+    dose_g: brew.dose_g,
+    yield_g: brew.yield_g,
+    brew_time_s: brew.brew_time_s,
   };
 }
 

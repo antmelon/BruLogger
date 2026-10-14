@@ -1,4 +1,6 @@
-import { brewCardLabel, coffeeCardLabel, flavorProfileLabel, ratingLabel, ratingTrendLabel, stepRating } from '../lib/a11y';
+import {
+  brewCardLabel, coffeeCardLabel, flavorProfileLabel, ratingLabel, ratingTrendLabel, ratioLabel, stepRating,
+} from '../lib/a11y';
 import { BASE_BREW, BASE_COFFEE } from './fixtures';
 
 describe('ratingLabel', () => {
@@ -30,6 +32,13 @@ describe('stepRating', () => {
 
   it('stops at five stars', () => {
     expect(stepRating(5, 'increment')).toBe(5);
+  });
+});
+
+describe('ratioLabel', () => {
+  it('says the ratio in words, since "1:16" is read as "1 colon 16"', () => {
+    expect(ratioLabel(16)).toBe('1 to 16');
+    expect(ratioLabel(300 / 18)).toBe('1 to 16.7');
   });
 });
 

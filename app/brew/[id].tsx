@@ -7,6 +7,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useBrew, useDeleteBrew, usePhotoUrl } from '../../lib/brewQueries';
 import { colors, shadows } from '../../lib/theme';
 import { daysSinceRoast } from '../../lib/coffeeStats';
+import { brewRatio, formatRatio } from '../../lib/ratio';
+import { ratioLabel } from '../../lib/a11y';
 import RadarChart from '../../components/RadarChart';
 import StarRating from '../../components/StarRating';
 
@@ -86,6 +88,7 @@ export default function BrewDetailScreen() {
 
   const { coffee } = brew;
   const daysOffRoast = daysSinceRoast(coffee.roast_date, brew.created_at);
+  const ratio = brewRatio(brew.dose_g, brew.yield_g);
   const date = new Date(brew.created_at).toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
@@ -114,6 +117,15 @@ export default function BrewDetailScreen() {
             <StarRating value={brew.rating} readonly />
           </View>
         ) : null}
+        <TouchableOpacity
+          style={styles.againButton}
+          onPress={() => router.push(`/brew/again/${id}`)}
+          activeOpacity={0.85}
+          role="button"
+          aria-label="Brew again: a new brew that starts from this one's recipe"
+        >
+          <Text style={styles.againButtonText}>Brew Again</Text>
+        </TouchableOpacity>
       </View>
 
       {/* The coffee */}
@@ -145,6 +157,7 @@ export default function BrewDetailScreen() {
         {brew.water_temp_c ? <InfoRow label="Water Temp" value={`${brew.water_temp_c}°C`} spoken={`${brew.water_temp_c} degrees Celsius`} /> : null}
         {brew.dose_g ? <InfoRow label="Dose" value={`${brew.dose_g}g`} spoken={`${brew.dose_g} grams`} /> : null}
         {brew.yield_g ? <InfoRow label="Yield" value={`${brew.yield_g}g`} spoken={`${brew.yield_g} grams`} /> : null}
+        {ratio !== null ? <InfoRow label="Ratio" value={formatRatio(ratio)} spoken={ratioLabel(ratio)} /> : null}
         {brew.brew_time_s ? <InfoRow label="Brew Time" value={`${brew.brew_time_s}s`} spoken={`${brew.brew_time_s} seconds`} /> : null}
       </View>
 
@@ -217,6 +230,14 @@ const styles = StyleSheet.create({
   coffeeName: { fontSize: 22, fontWeight: '800', color: colors.textDark },
   roaster: { fontSize: 14, color: colors.textMedium, marginTop: 4 },
   date: { fontSize: 13, color: colors.textLight, marginTop: 6 },
+  againButton: {
+    marginTop: 16,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  againButtonText: { color: colors.surface, fontSize: 15, fontWeight: '700' },
 
   section: {
     backgroundColor: colors.surface,

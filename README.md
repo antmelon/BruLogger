@@ -19,7 +19,8 @@ Live at **[brulogger.vercel.app](https://brulogger.vercel.app)**. The same codeb
 
 ## Features
 
-- **Log a brew**: which coffee, the recipe (method, grind, water temperature, dose, yield, brew time), tasting notes, a 1–5 star rating in half stars, and a photo. A new brew starts with the coffee you used last.
+- **Log a brew**: which coffee, the recipe (method, grind, water temperature, dose, yield, brew time), tasting notes, a 1–5 star rating in half stars, and a photo. A new brew starts with the coffee you used last. The form shows the ratio (1:16) as you type the dose and yield, and typing a ratio fills in the yield.
+- **Brew again**: start a new brew from a past one. It copies the coffee (if the bag isn't finished), method and recipe, leaves the tasting empty, and shows that brew's notes as a reminder.
 - **Coffees you own**: each bag once (name, roaster, origin, roast level, varietal, processing, the roaster's tasting notes, roast date, bag size), then pick it for every brew. The Coffees tab shows days since roast, brews and average rating per coffee, and how much is left from the doses you logged, with a "running low" flag. Mark a bag finished when it's gone.
 - **Flavor profile**: score aromatics, acidity, sweetness, aftertaste and body from 1 to 5, shown as a radar chart. It's optional, so averages only include brews you actually scored.
 - **Browse your history**: search by coffee name, roaster, origin or flavor notes; filter by method, roast or minimum rating; sort by date, rating or name.
@@ -99,6 +100,7 @@ flowchart TD
   list --> detail["Brew detail<br/>/brew/:id"]
   list --> new["Log a brew<br/>/brew/new"]
   detail --> edit["Edit brew<br/>/brew/edit/:id"]
+  detail -- "Brew Again" --> again["Brew again<br/>/brew/again/:id"]
   detail --> coffee
   coffees --> coffee["Coffee<br/>/coffee/:id"]
   coffees --> newCoffee["Add a coffee<br/>/coffee/new"]
@@ -106,7 +108,7 @@ flowchart TD
   coffee -- "Log a Brew" --> new
 ```
 
-Logging and editing a brew use the same form (`components/BrewForm.tsx`). Its first section picks the coffee from the ones in use, or adds a new one with the same fields as the coffee form (`components/CoffeeFields.tsx`). The roast date is typed ("Oct 5", "10/5", "yesterday") and read back under the field, since a date picker would need a new native build.
+Logging, editing and brewing again use the same form (`components/BrewForm.tsx`). Its first section picks the coffee from the ones in use, or adds a new one with the same fields as the coffee form (`components/CoffeeFields.tsx`). The roast date is typed ("Oct 5", "10/5", "yesterday") and read back under the field, since a date picker would need a new native build.
 
 The [privacy policy](https://brulogger.com/privacy), [terms](https://brulogger.com/terms) and [support page](https://brulogger.com/support) (`app/(public)/`) are open whether you're signed in or not. They're linked from the landing page, the sign-in screen and Profile.
 

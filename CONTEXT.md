@@ -38,6 +38,12 @@ Free-text notes about the Brew that aren't tasting descriptors (technique tweaks
 ### Brew Parameters
 The measurable recipe of a Brew: grind size (free text), water temperature (°C), dose (g of coffee), yield (g of liquid out), and brew time (whole seconds). All optional.
 
+### Ratio
+A Brew's yield divided by its dose, written 1:16 (16 g of yield per gram of coffee). Worked out from the Brew Parameters, never stored. Typing a ratio into the brew form fills in the yield from the dose.
+
+### Brew Again
+Starting a new Brew from a past one: it copies the Coffee (unless that bag is finished), the BrewMethod and the Brew Parameters, but not the Rating, FlavorProfile, Flavor Notes or Photo. The past Brew's General Notes are shown as a reminder, not copied.
+
 ### Photo
 An optional single image attached to a Brew, stored in the private `brew-photos` Supabase Storage bucket. Only its owner can view, upload or delete it; the app shows it through a short-lived signed link.
 
