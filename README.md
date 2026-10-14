@@ -24,6 +24,7 @@ Live at **[brulogger.vercel.app](https://brulogger.vercel.app)**. The same codeb
 - **Coffees you own**: each bag once (name, roaster, origin, roast level, varietal, processing, the roaster's tasting notes, roast date, bag size), then pick it for every brew. The Coffees tab shows days since roast, brews and average rating per coffee, and how much is left from the doses you logged, with a "running low" flag. Mark a bag finished when it's gone.
 - **Flavor profile**: score aromatics, acidity, sweetness, aftertaste and body from 1 to 5, shown as a radar chart. It's optional, so averages only include brews you actually scored.
 - **Browse your history**: search by coffee name, roaster, origin or flavor notes; filter by method, roast or minimum rating; sort by date, rating or name.
+- **Export your data**: Profile → Export Brews saves every brew with its coffee as a CSV for Numbers, Excel or Google Sheets (photos aren't included). The website downloads it; the app opens the share sheet.
 - **Analytics**: total brews, average rating, favorite method, rating over time, brews by method and roast level, and your average flavor profile.
 - **Log from Telegram**: send the bot something like *"V60, Guji natural, 15g/250g, 3:10, blueberry, 4.5 stars"*, a photo of the bag, a photo of the cup, or any mix. It drafts the brew, asks you to confirm, and saves it. It can also fix or delete a logged brew and answer questions about past ones.
 - **Private**: you sign in with Apple or Google, and each account sees only its own brews.

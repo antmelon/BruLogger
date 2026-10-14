@@ -10,6 +10,8 @@ import { ratingLabel } from '../../lib/a11y';
 import { LegalLinks } from '../../components/LegalLinks';
 import { brewStats } from '../../lib/analytics';
 import { useBrews } from '../../lib/brewQueries';
+import { brewsCsv, exportFileName } from '../../lib/export';
+import { shareTextFile } from '../../lib/shareFile';
 import { colors, shadows } from '../../lib/theme';
 
 function StatTile({ label, value, spoken }: { label: string; value: string; spoken?: string }) {
@@ -23,14 +25,31 @@ function StatTile({ label, value, spoken }: { label: string; value: string; spok
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
-  const { data: brews, isPending } = useBrews();
+  const { data: brews, isPending, refetch } = useBrews();
   const stats = useMemo(() => (brews ? brewStats(brews) : null), [brews]);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { canInstall, install } = useInstallPrompt();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
+
+  async function exportBrews() {
+    setExporting(true);
+    try {
+      // The latest brews (a bot-logged one may be newer than the list), or the loaded ones offline
+      const latest = (await refetch()).data ?? brews ?? [];
+      await shareTextFile(exportFileName(), brewsCsv(latest), 'text/csv;charset=utf-8');
+    } catch (e) {
+      const detail = e instanceof Error && e.message ? `\n\n${e.message}` : '';
+      const message = `Could not export your brews. Please try again.${detail}`;
+      if (Platform.OS === 'web') window.alert(message);
+      else Alert.alert('Export failed', message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   // On success the session ends and the auth gate takes the user back to the landing page. An
   // Apple account confirms with Apple first (iOS only), and closing that sheet deletes nothing. The
@@ -102,6 +121,28 @@ export default function ProfileScreen() {
             <StatTile label="Fav Method" value={stats.topMethod ?? '—'} />
             <StatTile label="Top Origin" value={stats.topOrigin ?? '—'} />
           </View>
+        </View>
+      )}
+
+      {brews && brews.length > 0 && (
+        <View style={styles.statsCard}>
+          <Text style={styles.sectionTitle} role="heading">Your Data</Text>
+          <Text style={styles.dataText}>
+            Every brew and its coffee as a spreadsheet (CSV). Photos aren&apos;t included.
+          </Text>
+          <TouchableOpacity
+            style={styles.export}
+            onPress={exportBrews}
+            disabled={exporting}
+            activeOpacity={0.85}
+            role="button"
+            aria-label="Export brews as a spreadsheet"
+            aria-busy={exporting}
+          >
+            {exporting
+              ? <ActivityIndicator color={colors.primary} />
+              : <Text style={styles.signOutText}>Export Brews</Text>}
+          </TouchableOpacity>
         </View>
       )}
 
@@ -194,6 +235,15 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 18, fontWeight: '800', color: colors.textDark, marginBottom: 4 },
   statLabel: { fontSize: 12, color: colors.textMedium, fontWeight: '500' },
+
+  dataText: { fontSize: 14, lineHeight: 20, color: colors.textMedium, marginBottom: 14 },
+  export: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
 
   install: {
     backgroundColor: colors.primary,
