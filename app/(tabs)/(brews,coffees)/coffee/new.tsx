@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import CoffeeForm from '../../components/CoffeeForm';
-import { useCreateCoffee } from '../../lib/brewQueries';
-import { CoffeeInsert } from '../../types';
+import CoffeeForm from '../../../../components/CoffeeForm';
+import { useCreateCoffee } from '../../../../lib/brewQueries';
+import { CoffeeInsert } from '../../../../types';
 
 export default function NewCoffeeScreen() {
   const router = useRouter();

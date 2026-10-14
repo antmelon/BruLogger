@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import BrewForm from '../../components/BrewForm';
-import { useCreateBrew } from '../../lib/brewQueries';
-import { BrewInsert } from '../../types';
+import BrewForm from '../../../../components/BrewForm';
+import { useCreateBrew } from '../../../../lib/brewQueries';
+import { BrewInsert } from '../../../../types';
 
 export default function NewBrewScreen() {
   const router = useRouter();

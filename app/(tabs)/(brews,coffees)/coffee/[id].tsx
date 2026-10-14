@@ -3,12 +3,12 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Brew } from '../../types';
-import { useBrews, useCoffees, useDeleteCoffee, useUpdateCoffee } from '../../lib/brewQueries';
-import { coffeeStats, daysAgo, daysSinceRoast, formatRoastDate } from '../../lib/coffeeStats';
-import { ratingLabel } from '../../lib/a11y';
-import { colors, shadows } from '../../lib/theme';
-import StarRating from '../../components/StarRating';
+import { Brew } from '../../../../types';
+import { useBrews, useCoffees, useDeleteCoffee, useUpdateCoffee } from '../../../../lib/brewQueries';
+import { coffeeStats, daysAgo, daysSinceRoast, formatRoastDate } from '../../../../lib/coffeeStats';
+import { ratingLabel } from '../../../../lib/a11y';
+import { colors, shadows } from '../../../../lib/theme';
+import StarRating from '../../../../components/StarRating';
 
 const NO_BREWS: Brew[] = [];
 
@@ -88,7 +88,7 @@ export default function CoffeeDetailScreen() {
       showMessage('Not deleted', e instanceof Error ? e.message : 'Could not delete this coffee. Please try again.');
       return;
     }
-    router.replace('/(tabs)/coffees');
+    router.back(); // to the Coffees list
   }
 
   function confirmDelete() {

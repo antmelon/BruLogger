@@ -4,13 +4,13 @@ import {
   ActivityIndicator, RefreshControl, TextInput, ScrollView, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Brew, BREW_METHODS, ROAST_LEVELS } from '../../types';
-import { colors, shadows } from '../../lib/theme';
-import { useBrews, usePhotoUrl } from '../../lib/brewQueries';
-import { activeFilterCount, BrewFilters, DEFAULT_FILTERS, filterBrews } from '../../lib/brewList';
-import StarRating from '../../components/StarRating';
-import { brewCardLabel } from '../../lib/a11y';
-import { CoffeeIcon, SearchIcon } from '../../components/icons';
+import { Brew, BREW_METHODS, ROAST_LEVELS } from '../../../types';
+import { colors, shadows } from '../../../lib/theme';
+import { useBrews, usePhotoUrl } from '../../../lib/brewQueries';
+import { activeFilterCount, BrewFilters, DEFAULT_FILTERS, filterBrews } from '../../../lib/brewList';
+import StarRating from '../../../components/StarRating';
+import { brewCardLabel } from '../../../lib/a11y';
+import { CoffeeIcon, SearchIcon } from '../../../components/icons';
 
 const NO_BREWS: Brew[] = [];
 

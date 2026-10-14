@@ -3,12 +3,12 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Brew, Coffee } from '../../types';
-import { useBrews, useCoffees } from '../../lib/brewQueries';
-import { coffeeStats, daysAgo, daysSinceRoast, groupCoffees } from '../../lib/coffeeStats';
-import { coffeeCardLabel } from '../../lib/a11y';
-import { colors, shadows } from '../../lib/theme';
-import { BagIcon } from '../../components/icons';
+import { Brew, Coffee } from '../../../types';
+import { useBrews, useCoffees } from '../../../lib/brewQueries';
+import { coffeeStats, daysAgo, daysSinceRoast, groupCoffees } from '../../../lib/coffeeStats';
+import { coffeeCardLabel } from '../../../lib/a11y';
+import { colors, shadows } from '../../../lib/theme';
+import { BagIcon } from '../../../components/icons';
 
 const NO_BREWS: Brew[] = [];
 const NO_COFFEES: Coffee[] = [];

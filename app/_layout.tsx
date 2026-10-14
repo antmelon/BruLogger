@@ -13,14 +13,14 @@ import { ArrowLeftIcon } from '../components/icons';
 // Before anything renders, so startup errors are caught too
 initCrashReports();
 
-function HomeButton({ to, label }: { to: '/(tabs)' | '/'; label: string }) {
+function HomeButton() {
   const router = useRouter();
   return (
     <TouchableOpacity
-      onPress={() => router.replace(to)}
+      onPress={() => router.replace('/')}
       style={styles.homeButton}
       role="button"
-      aria-label={label}
+      aria-label="Back to BruLogger"
     >
       <ArrowLeftIcon color={colors.primary} strokeWidth={2} />
     </TouchableOpacity>
@@ -28,22 +28,19 @@ function HomeButton({ to, label }: { to: '/(tabs)' | '/'; label: string }) {
 }
 
 /**
- * Header options for the screens stacked over the tabs. A screen opened with nothing behind it
- * (a reload, a shared link, Android reopening the installed web app) gets no back button, and the
- * installed web app has no browser back button either, so it gets one that goes to My Brews. The
- * public pages go to the landing page instead, which sends signed-in users on to My Brews.
+ * Header options for the public pages (privacy, terms, support), which open over everything else.
+ * One opened with nothing behind it (a reload, a link from the App Store listing) gets no back
+ * button, and the installed web app has no browser back button either, so it gets one that goes to
+ * the landing page, which sends signed-in users on to My Brews. (The brew and coffee screens live
+ * in the tabs' stacks instead: app/(tabs)/(brews,coffees)/_layout.tsx.)
  */
-function stackedScreen(title: string, home: 'brews' | 'landing' = 'brews') {
+function publicPage(title: string) {
   return ({ navigation }: { navigation: { canGoBack(): boolean } }) => ({
     headerShown: true,
     title,
     headerTintColor: colors.primary,
     headerBackButtonDisplayMode: 'minimal' as const,
-    headerLeft: navigation.canGoBack()
-      ? undefined
-      : () => (home === 'brews'
-        ? <HomeButton to="/(tabs)" label="Back to My Brews" />
-        : <HomeButton to="/" label="Back to BruLogger" />),
+    headerLeft: navigation.canGoBack() ? undefined : () => <HomeButton />,
   });
 }
 
@@ -80,16 +77,9 @@ function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="brew/[id]" options={stackedScreen('Brew Details')} />
-        <Stack.Screen name="brew/new" options={stackedScreen('Log a Brew')} />
-        <Stack.Screen name="brew/edit/[id]" options={stackedScreen('Edit Brew')} />
-        <Stack.Screen name="brew/again/[id]" options={stackedScreen('Brew Again')} />
-        <Stack.Screen name="coffee/[id]" options={stackedScreen('Coffee')} />
-        <Stack.Screen name="coffee/new" options={stackedScreen('Add a Coffee')} />
-        <Stack.Screen name="coffee/edit/[id]" options={stackedScreen('Edit Coffee')} />
-        <Stack.Screen name="(public)/privacy" options={stackedScreen('Privacy Policy', 'landing')} />
-        <Stack.Screen name="(public)/terms" options={stackedScreen('Terms of Service', 'landing')} />
-        <Stack.Screen name="(public)/support" options={stackedScreen('Support', 'landing')} />
+        <Stack.Screen name="(public)/privacy" options={publicPage('Privacy Policy')} />
+        <Stack.Screen name="(public)/terms" options={publicPage('Terms of Service')} />
+        <Stack.Screen name="(public)/support" options={publicPage('Support')} />
         <Stack.Screen name="auth/callback" />
       </Stack>
     </QueryClientProvider>

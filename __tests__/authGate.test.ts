@@ -3,7 +3,7 @@ import { authRedirect } from '../lib/authGate';
 describe('authRedirect', () => {
   it('sends signed-out visitors on app screens to sign in', () => {
     expect(authRedirect(['(tabs)'], false)).toBe('/(auth)/login');
-    expect(authRedirect(['brew', '[id]'], false)).toBe('/(auth)/login');
+    expect(authRedirect(['(tabs)', '(brews)', 'brew', '[id]'], false)).toBe('/(auth)/login');
   });
 
   it('lets signed-out visitors see the landing page, sign-in and the sign-in callback', () => {
@@ -19,7 +19,7 @@ describe('authRedirect', () => {
 
   it('leaves signed-in users where they are in the app', () => {
     expect(authRedirect(['(tabs)', 'profile'], true)).toBeNull();
-    expect(authRedirect(['brew', 'new'], true)).toBeNull();
+    expect(authRedirect(['(tabs)', '(coffees)', 'brew', 'new'], true)).toBeNull();
   });
 
   it('lets anyone read the privacy policy, terms and support page, signed in or not', () => {

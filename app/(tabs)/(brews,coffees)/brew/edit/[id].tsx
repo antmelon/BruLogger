@@ -1,21 +1,22 @@
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import BrewForm from '../../../components/BrewForm';
-import { useBrew, useCreateBrew } from '../../../lib/brewQueries';
-import { brewAgainFrom } from '../../../lib/form';
-import { colors } from '../../../lib/theme';
-import { BrewInsert } from '../../../types';
+import BrewForm from '../../../../../components/BrewForm';
+import { useBrew, useUpdateBrew } from '../../../../../lib/brewQueries';
+import { colors } from '../../../../../lib/theme';
+import { BrewInsert } from '../../../../../types';
 
-/** Brew Again: a new brew that starts from a past one's coffee and recipe. */
-export default function BrewAgainScreen() {
+export default function EditBrewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: brew, isPending, isError } = useBrew(id);
-  const createMutation = useCreateBrew();
+  const updateMutation = useUpdateBrew();
 
-  async function handleSubmit(created: BrewInsert) {
-    const saved = await createMutation.mutateAsync(created);
-    router.replace(`/brew/${saved.id}`);
+  async function handleSubmit(updated: BrewInsert) {
+    await updateMutation.mutateAsync({ id, brew: updated, previousPhotoPath: brew?.photo_path ?? null });
+    // Back to the brew, which shows the changes. Replacing the form with it instead would leave the
+    // brew in the history twice.
+    if (router.canGoBack()) router.back();
+    else router.replace(`/brew/${id}`);
   }
 
   if (isPending) {
@@ -34,14 +35,7 @@ export default function BrewAgainScreen() {
     );
   }
 
-  return (
-    <BrewForm
-      initial={brewAgainFrom(brew)}
-      lastNotes={brew.general_notes}
-      onSubmit={handleSubmit}
-      submitLabel="Log Brew"
-    />
-  );
+  return <BrewForm initial={brew} onSubmit={handleSubmit} submitLabel="Save Changes" />;
 }
 
 const styles = StyleSheet.create({

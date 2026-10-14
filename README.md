@@ -108,6 +108,8 @@ flowchart TD
   coffee -- "Log a Brew" --> new
 ```
 
+Brews and coffees open inside the tab they were tapped in, so the tab bar stays on every signed-in screen and tapping the current tab goes back to its list. Their screens are declared once in `app/(tabs)/(brews,coffees)/`, which Expo Router turns into a stack in both the My Brews and Coffees tabs; a link opened cold lands in My Brews, with the list behind it. After a form is saved, the history has no duplicates: Edit goes back to the brew or coffee, and a brew made with Brew Again takes the old brew's place.
+
 Logging, editing and brewing again use the same form (`components/BrewForm.tsx`). Its first section picks the coffee from the ones in use, or adds a new one with the same fields as the coffee form (`components/CoffeeFields.tsx`). The roast date is typed ("Oct 5", "10/5", "yesterday") and read back under the field, since a date picker would need a new native build.
 
 The [privacy policy](https://brulogger.com/privacy), [terms](https://brulogger.com/terms) and [support page](https://brulogger.com/support) (`app/(public)/`) are open whether you're signed in or not. They're linked from the landing page, the sign-in screen and Profile.
@@ -515,10 +517,11 @@ app/                    Screens (Expo Router: one file per route)
   index.tsx             Landing page (web), welcome screen (app)
   (auth)/login.tsx      Apple and Google sign-in
   auth/callback.tsx     Finishes web sign-in
-  (tabs)/               My Brews, Coffees, Analytics, Profile
+  (tabs)/               The tabs: Analytics, Profile, and a stack each for My Brews and Coffees
+    (brews)/index.tsx   My Brews
+    (coffees)/coffees.tsx  Coffees
+    (brews,coffees)/    Shared by both stacks: brew/ (detail, new, edit, again), coffee/ (detail, new, edit)
   (public)/             Privacy policy, terms, support (no sign-in needed)
-  brew/                 Detail, new, edit
-  coffee/               Detail, new, edit
 components/             BrewForm, CoffeeForm, CoffeeFields, FormFields, RadarChart, StarRating, SliderInput, SignInButtons, WelcomeScreen, LegalPage, icons
 lib/
   brews.ts              Data access for brews (with their coffee) and photos

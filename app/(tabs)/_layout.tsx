@@ -17,16 +17,18 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="(brews)"
         options={{
           title: 'My Brews',
+          headerShown: false, // its stack has the header ((brews,coffees)/_layout.tsx)
           tabBarIcon: ({ color }) => <CoffeeIcon size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="coffees"
+        name="(coffees)"
         options={{
           title: 'Coffees',
+          headerShown: false,
           tabBarIcon: ({ color }) => <BagIcon size={22} color={color} />,
         }}
       />

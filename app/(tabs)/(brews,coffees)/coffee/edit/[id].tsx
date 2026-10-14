@@ -1,9 +1,9 @@
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import CoffeeForm from '../../../components/CoffeeForm';
-import { useCoffees, useUpdateCoffee } from '../../../lib/brewQueries';
-import { colors } from '../../../lib/theme';
-import { CoffeeInsert } from '../../../types';
+import CoffeeForm from '../../../../../components/CoffeeForm';
+import { useCoffees, useUpdateCoffee } from '../../../../../lib/brewQueries';
+import { colors } from '../../../../../lib/theme';
+import { CoffeeInsert } from '../../../../../types';
 
 export default function EditCoffeeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -14,7 +14,9 @@ export default function EditCoffeeScreen() {
 
   async function handleSubmit(updated: CoffeeInsert) {
     await updateMutation.mutateAsync({ id, coffee: updated });
-    router.replace(`/coffee/${id}`);
+    // Back to the coffee, which shows the changes (replacing the form would list it twice)
+    if (router.canGoBack()) router.back();
+    else router.replace(`/coffee/${id}`);
   }
 
   if (isPending) {

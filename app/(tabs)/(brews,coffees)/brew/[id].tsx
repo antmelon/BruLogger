@@ -4,13 +4,13 @@ import {
   TouchableOpacity, Alert, Platform, Image, Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useBrew, useDeleteBrew, usePhotoUrl } from '../../lib/brewQueries';
-import { colors, shadows } from '../../lib/theme';
-import { daysSinceRoast } from '../../lib/coffeeStats';
-import { brewRatio, formatRatio } from '../../lib/ratio';
-import { ratioLabel } from '../../lib/a11y';
-import RadarChart from '../../components/RadarChart';
-import StarRating from '../../components/StarRating';
+import { useBrew, useDeleteBrew, usePhotoUrl } from '../../../../lib/brewQueries';
+import { colors, shadows } from '../../../../lib/theme';
+import { daysSinceRoast } from '../../../../lib/coffeeStats';
+import { brewRatio, formatRatio } from '../../../../lib/ratio';
+import { ratioLabel } from '../../../../lib/a11y';
+import RadarChart from '../../../../components/RadarChart';
+import StarRating from '../../../../components/StarRating';
 
 /** A label and value, read together; `spoken` is the value in words when its unit is abbreviated. */
 function InfoRow({ label, value, spoken }: { label: string; value: string | number; spoken?: string }) {
@@ -56,7 +56,7 @@ export default function BrewDetailScreen() {
       else Alert.alert('Delete failed', message);
       return;
     }
-    router.replace('/(tabs)');
+    router.back(); // to the list or coffee it was opened from
   }
 
   function confirmDelete() {
