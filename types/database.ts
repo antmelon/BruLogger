@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          created_at: string
+          feature: string
+          id: number
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: never
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: never
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       brews: {
         Row: {
           brew_method: string
@@ -150,7 +180,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_ai_use: {
+        Args: { daily_limit: number; feature: string }
+        Returns: number
+      }
       delete_account: { Args: never; Returns: undefined }
+      finish_ai_use: {
+        Args: {
+          input_tokens: number
+          model: string
+          output_tokens: number
+          use_id: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

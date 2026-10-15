@@ -111,11 +111,14 @@ describe('POST /api/coffees/scan', () => {
     expect(mockRpc).toHaveBeenCalledWith('finish_ai_use', expect.anything());
   });
 
-  it('pauses when the AI Gateway is out of credits or over budget', async () => {
+  it('pauses when the AI Gateway is out of credits, over budget or has no card', async () => {
     mockReadBag.mockRejectedValue(APIError.generate(402, { error: { message: 'quota' } }, 'quota', new Headers()));
     const res = await POST(req());
     expect(res.status).toBe(503);
     expect((await res.json()).error).toMatch(/paused/);
+    const noCard = { error: { message: 'requires a valid credit card', type: 'customer_verification_required' } };
+    mockReadBag.mockRejectedValue(APIError.generate(403, noCard, 'no card', new Headers()));
+    expect((await (await POST(req())).json()).error).toMatch(/paused/);
   });
 
   it('asks for a retry when the model is busy, and reports other failures', async () => {

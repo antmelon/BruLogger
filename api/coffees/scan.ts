@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { error, json, parsePhoto, readJsonObject, reportError, withErrorReports } from '../../server/api';
 import { DEFAULT_BAG_SCAN_MODEL, ReadBagOptions, readBag } from '../../server/bagScan';
 import { scanToCoffeeFields } from '../../lib/bagScan';
+import type { Database } from '../../types';
 
 // POST /api/coffees/scan { photo: { data, mime_type }, today }: snap the bag. Claude reads a photo
 // of a coffee bag (server/bagScan.ts) and this answers with the coffee form fields it found, plus
@@ -35,7 +36,7 @@ export const POST = withErrorReports(async (request: Request) => {
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return error(401, 'Sign in first.');
   // Queries run as the caller, so their own row-level security applies
-  const db = createClient(url, anonKey, {
+  const db = createClient<Database>(url, anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -80,8 +81,9 @@ export const POST = withErrorReports(async (request: Request) => {
     if (e instanceof Anthropic.RateLimitError) {
       return error(503, 'Bag scanning is busy right now. Try again in a minute.');
     }
-    if (e instanceof Anthropic.APIError && e.status === 402) {
-      // Out of AI Gateway credits or over the budget: the monthly cap at work
+    if (e instanceof Anthropic.APIError && (e.status === 402 || e.status === 403)) {
+      // Out of AI Gateway credits or over the budget (the monthly cap at work), or the team's
+      // card is missing (403 customer_verification_required)
       await reportError('bag scan: spend cap', e);
       return error(503, 'Bag scanning is paused for now. Fill in the details by hand.');
     }
