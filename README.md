@@ -22,6 +22,7 @@ Live at **[brulogger.vercel.app](https://brulogger.vercel.app)**. The same codeb
 - **Log a brew**: which coffee, the recipe (method, grind, water temperature, dose, yield, brew time), tasting notes, a 1–5 star rating in half stars, and a photo. A new brew starts with the coffee you used last. The form shows the ratio (1:16) as you type the dose and yield, and typing a ratio fills in the yield.
 - **Brew again**: start a new brew from a past one. It copies the coffee (if the bag isn't finished), method and recipe, leaves the tasting empty, and shows that brew's notes as a reminder.
 - **Coffees you own**: each bag once (name, roaster, origin, roast level, varietal, processing, the roaster's tasting notes, roast date, bag size), then pick it for every brew. The Coffees tab shows days since roast, brews and average rating per coffee, and how much is left from the doses you logged, with a "running low" flag. Mark a bag finished when it's gone.
+- **Scan the bag**: on a new coffee, a photo of the bag's label fills in the name, roaster, origin, roast level, varietal, process, tasting notes, roast date and bag size, ready to check and edit. Claude reads the photo, which isn't kept. Up to 10 scans a day. On the website now, and in the iPhone app from version 1.1.0.
 - **Flavor profile**: score aromatics, acidity, sweetness, aftertaste and body from 1 to 5, shown as a radar chart. It's optional, so averages only include brews you actually scored.
 - **Browse your history**: search by coffee name, roaster, origin or flavor notes; filter by method, roast or minimum rating; sort by date, rating or name.
 - **Export your data**: Profile → Export Brews saves every brew with its coffee as a CSV for Numbers, Excel or Google Sheets (photos aren't included). The website downloads it; the app opens the share sheet.
@@ -31,7 +32,7 @@ Live at **[brulogger.vercel.app](https://brulogger.vercel.app)**. The same codeb
 
 ## Architecture
 
-There is no custom backend for the app. It talks directly to Supabase, and Postgres row-level security keeps each user's data separate. The only server code is a small HTTP API on Vercel, for the Telegram bot and for revoking Sign in with Apple when an account is deleted.
+There is no custom backend for the app. It talks directly to Supabase, and Postgres row-level security keeps each user's data separate. The only server code is a small HTTP API on Vercel: for the Telegram bot, for reading coffee bag photos with AI, and for revoking Sign in with Apple when an account is deleted.
 
 ```mermaid
 flowchart LR
@@ -45,6 +46,7 @@ flowchart LR
   subgraph vercel [Vercel]
     web["Static web build"]
     api["/api<br/>Node functions"]
+    gateway["AI Gateway<br/>Claude"]
   end
 
   subgraph supabase [Supabase]
@@ -60,9 +62,11 @@ flowchart LR
   app -- "your session<br/>(row-level security)" --> db
   app -- upload / delete --> storage
   app -. "revoke Sign in with Apple<br/>(deleting an account)" .-> api
+  app -. "scan a bag<br/>(your session)" .-> api
   bot -- bearer token --> api
   api -- service role --> db
   api --> storage
+  api -- bag photo --> gateway
 ```
 
 | Piece | Built with |
@@ -74,6 +78,7 @@ flowchart LR
 | Hosting and API | [Vercel](https://vercel.com): the static web build plus Node functions in `api/` |
 | Telegram bot | A [Hermes](https://github.com/NousResearch/hermes-agent) agent with the skill in [`integrations/hermes/log-brew`](integrations/hermes/log-brew/SKILL.md) |
 | Crash reports | [Sentry](https://sentry.io), in the app (`lib/sentry.ts`) and the API (`server/api.ts`), production only |
+| AI | Claude Haiku 5.5 through [Vercel AI Gateway](https://vercel.com/ai-gateway), for Scan the Bag (see [Snap the Bag](#snap-the-bag)) |
 
 ## The app
 
@@ -187,6 +192,21 @@ Production errors from the app (iOS, Android and web) and from the API go to [Se
 
 Reporting is on only where a DSN is set (Vercel Production), so local development and preview deploys report nothing. In the API, `reportError` logs a failure and reports it, and `withErrorReports` turns an unexpected exception in a handler into a reported 500.
 
+## Snap the Bag
+
+New Coffee has a Scan the Bag button: a photo of the bag's label fills in the coffee's fields.
+
+1. The app shrinks the photo like any other (`prepareForUpload`) and sends it, with the person's Supabase session, to `POST /api/coffees/scan` (`lib/scanBagPhoto.ts`).
+2. The function counts the scan against the person's 10 in any 24 hours (`claim_ai_use()`, below), then asks Claude what's printed on the bag, with a fixed answer shape (structured output; `server/bagScan.ts` has the prompt). The model is told to copy only what's on the bag and leave the rest empty.
+3. `lib/bagScan.ts` turns the answer into form fields: bag sizes to grams, and a roast date only if it's real, not in the future and less than two years old. The person checks them and saves as usual.
+
+The photo is never stored. Every attempt counts toward the daily limit, including photos that weren't a bag, so the limit also caps spending. Claude is reached through Vercel's AI Gateway, which bills against prepaid credit and has a $5 monthly budget on the project. When either runs out, the button says scanning is paused and to fill the coffee in by hand.
+
+- **Model:** Haiku 5.5, chosen in October 2026 over Opus 5.5 after a trial on real bags: the same fields, about a 35th of the cost (around 0.03¢ a scan) and a little faster. `DEFAULT_BAG_SCAN_MODEL` in `server/bagScan.ts` sets it; the `BAG_SCAN_MODEL` env var overrides it without a code change.
+- **Credentials:** none to manage. A Vercel function gets an OIDC token that the gateway accepts. To try the model from your machine, `vercel env pull` writes one to the file you name (it expires after a few hours). The gateway's free tier doesn't serve Anthropic models, so it needs paid credit; keep auto top-up off so it can't spend more than was bought.
+- **Spend:** `vercel ai-gateway budgets list` shows the month's spend against the budget; the per-request detail is in the Vercel dashboard under AI Gateway.
+- **iPhone:** website only until app 1.1.0 (`BAG_SCAN_AVAILABLE` in `components/ScanBagButton.tsx`), which adds a camera permission text that mentions the bag.
+
 ## Accessibility
 
 The app is built to work with VoiceOver, TalkBack, web screen readers and a keyboard, and at large system text sizes.
@@ -266,6 +286,8 @@ erDiagram
 
 Every optional column is `null` when unset. To clear a field on update, send `null`; a missing key leaves the old value in place.
 
+**AI usage.** `public.ai_usage` has a row per AI request (today only Snap the Bag's, `feature = 'bag_scan'`): who, when, and once the model has answered, which model and how many tokens. Users can read their own rows but not write them. Rows are added only by `claim_ai_use(feature, daily_limit)`, which returns the new row's ID, or null when the caller already has `daily_limit` rows for that feature in the last 24 hours (it locks per user, so two requests at once can't both take the last scan). `finish_ai_use()` fills in the model and tokens on the caller's own row. Both only run for signed-in users. Rows go when the account does (`on delete cascade`).
+
 **Coffees, step 2 (pending).** App 1.0.0 reads and writes the coffee details on the brew itself, so until a newer build is the only one in use, `brews` still has `coffee_name`, `roaster`, `origin`, `roast_level`, `varietal` and `processing_method`, as copies of its coffee that database triggers keep current (`supabase/migrations/20261012195840_coffees.sql`). A brew 1.0.0 saves is linked to the coffee with that name and roaster, or a new one, and the other coffee details it saves (origin, roast level, varietal, process) go on to that coffee, so they change for all its brews, as they do in the new app. The app and the API never read the copies. Step 2, once the 1.0.0 build is gone, makes `coffee_id` required and drops the copies and the triggers.
 
 The schema lives in [`supabase/migrations/`](supabase/migrations), and `types/database.ts` is generated from the live database. `types/index.ts` builds the app's `Brew` and `Coffee` types on top of it, narrowing the columns Postgres only knows as text or JSON (`brew_method`, `roast_level`, `flavor_profile`) and leaving out the copied coffee columns.
@@ -275,6 +297,7 @@ The schema lives in [`supabase/migrations/`](supabase/migrations), and `types/da
 - **Row-level security** on `brews` and `coffees`: a signed-in user can read, create, update and delete only rows whose `user_id` is their own, and can't move one to another user. A brew's foreign key to its coffee includes `user_id`, so it can't point at someone else's coffee either.
 - **Private photos**: the `brew-photos` bucket isn't public. Storage policies let users upload, read and delete only files in their own folder, and the app displays a photo through a signed link that expires after an hour. The bucket only accepts images up to 5 MB.
 - **Account deletion**: Profile → Delete Account removes everything the user has stored. The app first deletes every file in their photo folder through the Storage API (SQL can't delete storage files), then calls the `delete_account()` database function, which deletes the user's auth account; their brews and coffees go with it (`on delete cascade`). Only signed-in users can call the function, and it only deletes the caller. If the photos can't be deleted, the account is left alone so the user can try again. On iPhone, an Apple account's Sign in with Apple access is revoked first (see Sign-in).
+- **AI spending** is capped per person (10 bag scans in any 24 hours, enforced by the database, not the app) and in total (the AI Gateway's monthly budget and prepaid credit). `/api/coffees/scan` only answers callers with a valid Supabase session, and bag photos aren't stored.
 - **Apple's signing key** stays on the server (Vercel Production env), never in the app. `/api/apple/revoke` only answers callers with a valid Supabase session.
 - **The anon key** in the app is public by design. It grants nothing beyond what row-level security allows.
 - **The bot API** uses a single bearer token that maps to one configured user, and writes with Supabase's service role key, which bypasses row-level security. So the API handlers themselves limit every query to that user. The token is compared in constant time.
@@ -458,6 +481,8 @@ flowchart LR
 | `SENTRY_DSN` | API: where error reports go | Production |
 | `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | API: Apple's Sign in with Apple key (`.p8` contents), for revoking it when an account is deleted | Production |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Build: uploading web source maps to Sentry | Production |
+| `BAG_SCAN_MODEL` | API: optional, an AI Gateway model ID for Snap the Bag instead of the default | None set |
+| `VERCEL_OIDC_TOKEN` | API: signs in to the AI Gateway. Vercel provides it to every deployment; set nothing | Automatic |
 
 `EXPO_PUBLIC_*` values are compiled into the web bundle at build time, so changing one needs a redeploy. The dev Supabase project is on the free plan and pauses after a week without use. If a preview fails with `ERR_NAME_NOT_RESOLVED`, restore the project from the Supabase dashboard.
 
@@ -523,7 +548,7 @@ app/                    Screens (Expo Router: one file per route)
     (coffees)/coffees.tsx  Coffees
     (brews,coffees)/    Shared by both stacks: brew/ (detail, new, edit, again), coffee/ (detail, new, edit)
   (public)/             Privacy policy, terms, support (no sign-in needed)
-components/             BrewForm, CoffeeForm, CoffeeFields, FormFields, RadarChart, StarRating, SliderInput, SignInButtons, WelcomeScreen, LegalPage, icons
+components/             BrewForm, CoffeeForm, CoffeeFields, ScanBagButton, FormFields, RadarChart, StarRating, SliderInput, SignInButtons, WelcomeScreen, LegalPage, icons
 lib/
   brews.ts              Data access for brews (with their coffee) and photos
   coffees.ts            Data access for coffees; with brews.ts, the only place that queries Supabase for them
@@ -542,12 +567,16 @@ lib/
   brewInput.ts          API input validation
   coffeeMatch.ts        Which of the user's coffees the API's coffee details mean
   photos.ts             Resize before upload
+  bagScan.ts            Snap the Bag: Claude's answer → coffee form fields
+  scanBagPhoto.ts       Snap the Bag: sends the photo to the API
   storage.ts            Photo bucket name
   supabase.ts           Supabase client
   theme.ts              Color and shadow tokens
 api/brews/              Vercel functions: index.ts (list, create), [id].ts (get, update, delete)
 api/apple/revoke.ts     Vercel function: revokes Sign in with Apple when an account is deleted
+api/coffees/scan.ts     Vercel function: Snap the Bag (reads a bag photo, with the daily limit)
 server/api.ts           Shared API helpers: auth, responses, photos
+server/bagScan.ts       Asks Claude what's printed on a coffee bag (the prompt and answer shape)
 server/coffees.ts       The API's coffee lookups: find, create, fill in, move a brew
 server/apple.ts         Apple client secrets and token revocation
 eas.json                EAS build and submit profiles (iOS releases)

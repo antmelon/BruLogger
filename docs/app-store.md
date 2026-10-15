@@ -73,6 +73,16 @@ Why each:
 
 **Not collected:** location, contacts, health, financial info, browsing or search history (searching your brews happens on the device), purchases, usage data or analytics, sensitive info, and anything for advertising. IP addresses in the hosting and sign-in logs aren't used to work out location or for anything beyond running the service.
 
+### For 1.1.0: Snap the Bag on iPhone
+
+The website has Scan the Bag already; the app gets it when `BAG_SCAN_AVAILABLE` (`components/ScanBagButton.tsx`) turns on in 1.1.0. Before submitting that version:
+
+- **App Privacy:** add Usage Data → Product Interaction (linked to the user, not used for tracking, App Functionality). That's the `ai_usage` record of each scan, kept to apply the daily limit. The bag photos themselves fall under User Content → Photos or Videos, already declared. They go to Anthropic through Vercel to be read, and nobody stores them.
+- **Review notes, item 4:** replace "No AI services, payment processors, ad networks or analytics." with "Anthropic (Claude), through Vercel's AI Gateway: reads the coffee bag photos people choose to scan, to fill in a coffee's details. The photo isn't stored." followed by "No payment processors, ad networks or analytics." Item 3 gets a line on where to find it: Coffees tab, + Add Coffee, Scan the Bag.
+- **Permission before the first scan:** Guideline 5.1.2(i) asks apps to say when personal data goes to a third-party AI and to get explicit permission first. The button's hint already says who reads the photo. On iPhone, also ask once before the first scan (Continue or Cancel) and remember the answer.
+- **Camera permission text** (`app.json`): mention photographing a coffee bag as well as brews.
+- **Listing:** a line about Scan the Bag in the description (`store.config.json`).
+
 ## Age rating
 
 Every content question is "None" or "No", which rates the app 4+. Two answers worth explaining:

@@ -10,7 +10,7 @@ import { z } from 'zod';
 const GATEWAY_URL = 'https://ai-gateway.vercel.sh';
 
 /** The model unless BAG_SCAN_MODEL names another: an AI Gateway id, provider/model. */
-export const DEFAULT_BAG_SCAN_MODEL = 'anthropic/claude-opus-5.5';
+export const DEFAULT_BAG_SCAN_MODEL = 'anthropic/claude-haiku-5.5';
 
 /** What the model returns; the same shape as BagScan in lib/bagScan.ts. Roast levels as in types/index.ts. */
 export const BagScanSchema = z.object({

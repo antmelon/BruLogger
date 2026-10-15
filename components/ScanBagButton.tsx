@@ -57,7 +57,9 @@ export default function ScanBagButton({ onScanned }: { onScanned: (fields: Parti
           {status.text}
         </Text>
       ) : (
-        <Text style={styles.status}>A photo of the label fills in the details below.</Text>
+        <Text style={styles.status}>
+          A photo of the label fills in the details below. Anthropic&apos;s Claude reads it, and the photo isn&apos;t kept.
+        </Text>
       )}
     </View>
   );
